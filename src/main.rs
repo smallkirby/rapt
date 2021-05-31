@@ -1,127 +1,13 @@
-use std::rc::Rc;
 use std::cell::{Cell, RefCell};
+use std::rc::{Rc, Weak};
 
-pub mod wai;
+pub mod configuration;
 
 #[derive(Debug, PartialEq)]
 pub enum APT_CMD {
   APT,
   APT_GET,
 }
-
-type LinkNode = Option<Rc<RefCell<Item>>>;
-
-#[derive(PartialEq)]
-// represent list in same hierarchy
-pub struct Item {
-  parent: LinkNode,
-  child: LinkNode,
-  next: LinkNode,
-  value: String,
-  tag: String,
-}
-
-impl std::fmt::Debug for Item {
-  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    let parent_name = if let Some(p) = self.parent.as_ref() {
-      String::from(&p.borrow().tag)
-    } else {
-      String::from("None")
-    };
-    let child_name = if let Some(p) = &self.child {
-      String::from(&p.borrow().tag)
-    } else {
-      String::from("None")
-    };
-    write!(f, "ITEM {{tag: {:?}, value: {:?}, parent: {:?}, child: {:?}}}", self.tag, self.value, parent_name, child_name);
-    Ok(())
-  }
-}
-
-#[derive(Debug, PartialEq, Default)]
-pub struct Configuration {
-  root: LinkNode,
-}
-
-impl Configuration {
-  pub fn new() -> Configuration { 
-    Configuration {
-        root: Some(Rc::new( RefCell::new(Item {
-          parent: None,
-          child: None,
-          next: None,
-          value: String::from(""),
-          tag: String::from(""),
-        }))),
-    }
-  }
-
-  //pub fn set(&mut self, name: &str, value: &str) {
-  //  if let Some(item) = self.lookup(name, true) {
-  //    //item.value = value; 
-  //  }
-  //}
-
-  pub fn push_child(&self, parent: Rc<RefCell<Item>>, val: &str, tag: &str) -> LinkNode {
-    let child = Rc::new(RefCell::new(Item {
-      parent: Some(parent.clone()),
-      child: None,
-      next: parent.borrow().child.clone(),
-      value: String::from(val),
-      tag: String::from(tag),
-    }));
-    parent.borrow_mut().child = Some(child.clone());
-    Some(child)
-  }
-
-  // find the direct child with @tag
-  pub fn lookup_child(&self, parent: &mut Rc<RefCell<Item>>, tag: &str, create: bool) -> LinkNode {
-    let mut found = false;
-    let mut cur_item = &parent.borrow_mut().child.clone();
-    loop {
-      match cur_item {
-        Some(item) => {
-          if item.borrow().tag == tag {
-            found = true;
-            return cur_item.clone();
-          } else {
-            cur_item = &item.clone().borrow_mut().next;
-            //cur_item = &item.clone().borrow_mut().next;
-            continue;
-          }
-        },
-        None => break,
-      }
-    };
-
-    if !create {
-      None
-    } else {
-      let newitem = Rc::new(RefCell::new(Item{
-        parent: None,
-        child: None,
-        next: None,
-        value: String::from(""),
-        tag: String::from(tag),
-      }));
-      match self.push_child(parent.clone(), "", tag) {
-        Some(new) => Some(new),
-        None => None,
-      }
-    }
-  }
-
-  // recursive lookup of Configuration.root
- // pub fn lookup(&self, name: &str, create: bool) -> Option<Box<Item>> {
- //   if name.len() == 0 { // terminator
- //     return Some(self.root.child);
- //   };
- //   for tag in name.split("::").collect::<Vec<_>>() {
-
- //   }
- // }
-}
-
 
 pub struct CommandLine {}
 
@@ -173,7 +59,12 @@ impl Dispatch {
 }
 
 impl Args {
-  pub fn new(name: impl Into<String>, short: impl Into<String>, long: impl Into<String>, flags: u64) -> Args {
+  pub fn new(
+    name: impl Into<String>,
+    short: impl Into<String>,
+    long: impl Into<String>,
+    flags: u64,
+  ) -> Args {
     Args {
       name: name.into(),
       short: short.into(),
@@ -216,30 +107,42 @@ pub fn GetCommand(cmds: &Vec<Dispatch>, cmdline: Vec<String>) -> Option<&Dispatc
   None
 }
 
-pub fn BinaryCommandSpecificConfiguration(binary: &String, cmd: &String, config: &mut Configuration) {
+pub fn BinaryCommandSpecificConfiguration(
+  binary: &String,
+  cmd: &String,
+  config: &mut configuration::Configuration,
+) {
   let binpath = std::path::PathBuf::from(&binary);
   match binpath.to_str().unwrap() {
-    "apt" => {
-
-    },
+    "apt" => {}
     _ => {
       unimplemented!();
-    },
+    }
   }
 }
 
 pub fn GetCommandArgs(program: APT_CMD, cmd: &String) -> Vec<Args> {
   let mut args = vec![];
 
-  if cmd != "help" { 
+  if cmd != "help" {
     // for now, assume that argv[0]=="apt"("rapt")
     if cmd == "list" {
       args.push(Args::new("APT::Cmd::Installed", "i", "installed", 0));
       args.push(Args::new("APT::Cmd::Upgradable", "", "upgradable", 0));
       args.push(Args::new("APT::Cmd::Upgradable", "", "upgradeable", 0));
       args.push(Args::new("APT::Cmd::Upgradable", "u", "upgradable", 0));
-      args.push(Args::new("APT::Cmd::ManualInstalled", "", "manual-installed", 0));
-      args.push(Args::new("APT::Cmd::List-Include-Summary", "v", "verbose", 0));
+      args.push(Args::new(
+        "APT::Cmd::ManualInstalled",
+        "",
+        "manual-installed",
+        0,
+      ));
+      args.push(Args::new(
+        "APT::Cmd::List-Include-Summary",
+        "v",
+        "verbose",
+        0,
+      ));
       args.push(Args::new("APT::Cmd::AllVersions", "a", "all-versions", 0));
     }
   }
@@ -286,8 +189,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-  use std::rc::Rc;
   use std::cell::{Cell, RefCell};
+  use std::rc::Rc;
 
   #[test]
   fn test_get_command_list() {
@@ -329,18 +232,5 @@ mod tests {
     let called_cmd =
       super::GetCommand(&cmds, vec![String::from("apt"), String::from("help")]).unwrap();
     assert_eq!(called_cmd.com, "help");
-  }
-
-  #[test]
-  fn test_push_child() {
-    let n0 = Rc::new(RefCell::new(super::Item{
-      parent: None,
-      child: None,
-      next: None,
-      value: String::from("n0"),
-      tag: String::from("N0"),
-    }));
-    let n1 = super::push_child(n0, "n1", "N1").unwrap();
-    println!("{:?}", n1);
   }
 }
