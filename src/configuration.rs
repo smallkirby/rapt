@@ -1,4 +1,4 @@
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 type LinkNode = Option<Rc<RefCell<Item>>>;
@@ -141,9 +141,9 @@ mod test {
   #[test]
   pub fn test_lookup_1() {
     let config = super::Configuration::new();
-    config.lookup("A", true);
-    config.lookup("B", true);
-    config.lookup("A::AA", true);
+    config.lookup("A", true).unwrap();
+    config.lookup("B", true).unwrap();
+    config.lookup("A::AA", true).unwrap();
     config.lookup("B::BB", true).unwrap();
     config.lookup("B::BB::BBB1", true).unwrap();
     let bbb2 = config.lookup("B::BB::BBB2", true).unwrap();
