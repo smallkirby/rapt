@@ -79,12 +79,13 @@ impl Configuration {
     }
   }
 
-  pub fn Get(&self, name: &str) -> Option<String> {
+  pub fn Find(&self, name: &str, default: &str) -> String {
     if let Some(item) = self.lookup(name, false) {
-      Some(String::from(&item.borrow().value))
-    } else {
-      None
+      if item.borrow().value.len() != 0 {
+        return String::from(&item.borrow().value);
+      }
     }
+    String::from(default)
   }
 
   // put child to the head child of @parent
@@ -182,14 +183,17 @@ mod test {
     config.lookup("A", true).unwrap();
     config.lookup("A::AA", true).unwrap();
     config.Set("A::AA", "30");
-    assert_eq!(config.Get("A::AA").unwrap(), String::from("30"));
+    assert_eq!(config.Find("A::AA", ""), String::from("30"));
 
     // set value of not existing item.
     config.Set("B::BB", "40");
-    assert_eq!(config.Get("B::BB").unwrap(), String::from("40"));
+    assert_eq!(config.Find("B::BB", ""), String::from("40"));
 
     // conditional set value of already set item.
     config.CndSet("A::AA", "50");
-    assert_eq!(config.Get("A::AA").unwrap(), String::from("30"));
+    assert_eq!(config.Find("A::AA", ""), String::from("30"));
+
+    // find not existing item's value
+    assert_eq!(config.Find("Not::Exist", ""), String::new());
   }
 }
