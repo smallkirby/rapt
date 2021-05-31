@@ -1,5 +1,4 @@
-use std::cell::{Cell, RefCell};
-use std::rc::{Rc, Weak};
+use simple_logger::SimpleLogger;
 
 pub mod configuration;
 
@@ -12,8 +11,8 @@ pub enum APT_CMD {
 pub struct CommandLine {}
 
 impl CommandLine {
-  pub fn new() -> Self {
-    unimplemented!();
+  pub fn new() -> CommandLine {
+    CommandLine {}
   }
 }
 
@@ -108,13 +107,17 @@ pub fn GetCommand(cmds: &Vec<Dispatch>, cmdline: Vec<String>) -> Option<&Dispatc
 }
 
 pub fn BinaryCommandSpecificConfiguration(
-  binary: &String,
+  binary: &str,
   cmd: &String,
   config: &mut configuration::Configuration,
 ) {
   let binpath = std::path::PathBuf::from(&binary);
-  match binpath.to_str().unwrap() {
-    "apt" => {}
+  log::trace!(
+    "bin name: {:?}",
+    binpath.file_name().unwrap().to_str().unwrap()
+  );
+  match binpath.file_name().unwrap().to_str().unwrap() {
+    "rapt" => {}
     _ => {
       unimplemented!();
     }
@@ -157,8 +160,30 @@ pub fn AddDefaultArgs(args: &mut Vec<Args>) {
   args.push(Args::new("version", "v", "version", 0));
 }
 
-pub fn ParseCommandLine(cmdl: &mut CommandLine, binary: APT_CMD) -> Vec<Dispatch> {
-  unimplemented!();
+pub fn ParseCommandLine(
+  cmdl: &mut CommandLine,
+  binary: APT_CMD,
+  config: &mut configuration::Configuration,
+) -> Vec<Dispatch> {
+  let cmds_with_help = GetCommands();
+  let cmds = cmds_with_help
+    .into_iter()
+    .map(|c| Dispatch::new(c.com, c.handler))
+    .collect::<Vec<_>>();
+  match GetCommand(&cmds, std::env::args().collect()) {
+    Some(called_cmd) => {
+      log::trace!("{:?}", called_cmd);
+      BinaryCommandSpecificConfiguration(
+        &std::env::args().collect::<Vec<_>>()[0],
+        &called_cmd.com,
+        config,
+      );
+      vec![]
+    }
+    None => {
+      unimplemented!();
+    }
+  }
 }
 
 pub fn DoList(handler: &CommandLine) -> bool {
@@ -169,28 +194,34 @@ pub fn DoSearch(handler: &CommandLine) -> bool {
   unimplemented!();
 }
 
+pub struct APT {
+  config: configuration::Configuration,
+  cmdl: CommandLine,
+}
+
+impl APT {
+  pub fn run(&mut self) {
+    ParseCommandLine(&mut self.cmdl, APT_CMD::APT, &mut self.config);
+  }
+}
+
 fn main() {
   println!("Toy Apt");
+  SimpleLogger::new()
+    .with_level(log::LevelFilter::Trace)
+    .init()
+    .unwrap();
 
-  let cmds_with_help = GetCommands();
-  let cmds = cmds_with_help
-    .into_iter()
-    .map(|c| Dispatch::new(c.com, c.handler))
-    .collect::<Vec<_>>();
-  match GetCommand(&cmds, std::env::args().collect()) {
-    Some(called_cmd) => {
-      println!("{:?}", called_cmd);
-    }
-    None => {
-      unimplemented!();
-    }
-  }
+  let mut apt = APT {
+    config: configuration::Configuration::new(),
+    cmdl: CommandLine::new(),
+  };
+  apt.run();
 }
 
 #[cfg(test)]
 mod tests {
-  use std::cell::{Cell, RefCell};
-  use std::rc::Rc;
+  use crate::configuration;
 
   #[test]
   fn test_get_command_list() {
