@@ -56,11 +56,24 @@ impl Configuration {
     }
   }
 
-  //pub fn set(&mut self, name: &str, value: &str) {
-  //  if let Some(item) = self.lookup(name, true) {
-  //    //item.value = value;
-  //  }
-  //}
+  // set a @value of Itenm with name @name.
+  // newly create the item if it doesn't exist.
+  // panic if lookup fails.
+  pub fn Set(&self, name: &str, value: &str) {
+    if let Some(item) = self.lookup(name, true) {
+      item.borrow_mut().value = String::from(value);
+    } else {
+      panic!()
+    }
+  }
+
+  pub fn Get(&self, name: &str) -> Option<String> {
+    if let Some(item) = self.lookup(name, false) {
+      Some(String::from(&item.borrow().value))
+    } else {
+      None
+    }
+  }
 
   // put child to the head child of @parent
   pub fn push_child(&self, parent: Rc<RefCell<Item>>, val: &str, tag: &str) -> LinkNode {
@@ -149,5 +162,17 @@ mod test {
     let bbb2 = config.lookup("B::BB::BBB2", true).unwrap();
     assert_eq!(bbb2.borrow().parent.upgrade().unwrap().borrow().tag, "BB");
     assert_eq!(bbb2.borrow().next.clone().unwrap().borrow().tag, "BBB1");
+  }
+
+  #[test]
+  pub fn test_set() {
+    let config = super::Configuration::new();
+    config.lookup("A", true).unwrap();
+    config.lookup("A::AA", true).unwrap();
+    config.Set("A::AA", "30");
+    assert_eq!(config.Get("A::AA").unwrap(), String::from("30"));
+
+    config.Set("B::BB", "40");
+    assert_eq!(config.Get("B::BB").unwrap(), String::from("40"));
   }
 }
