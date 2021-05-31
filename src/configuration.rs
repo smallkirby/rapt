@@ -56,12 +56,24 @@ impl Configuration {
     }
   }
 
-  // set a @value of Itenm with name @name.
+  // set a @value of Item with name @name.
   // newly create the item if it doesn't exist.
   // panic if lookup fails.
   pub fn Set(&self, name: &str, value: &str) {
     if let Some(item) = self.lookup(name, true) {
       item.borrow_mut().value = String::from(value);
+    } else {
+      panic!()
+    }
+  }
+
+  // set a @value of Item with name @name.
+  // if the value already exist, it does nothing.
+  pub fn CndSet(&self, name: &str, value: &str) {
+    if let Some(item) = self.lookup(name, true) {
+      if item.borrow().value.len() == 0 {
+        item.borrow_mut().value = String::from(value);
+      }
     } else {
       panic!()
     }
@@ -172,7 +184,12 @@ mod test {
     config.Set("A::AA", "30");
     assert_eq!(config.Get("A::AA").unwrap(), String::from("30"));
 
+    // set value of not existing item.
     config.Set("B::BB", "40");
     assert_eq!(config.Get("B::BB").unwrap(), String::from("40"));
+
+    // conditional set value of already set item.
+    config.CndSet("A::AA", "50");
+    assert_eq!(config.Get("A::AA").unwrap(), String::from("30"));
   }
 }
