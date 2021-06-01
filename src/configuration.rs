@@ -17,6 +17,31 @@ pub struct Item {
   tag: String,
 }
 
+impl Item {
+  pub fn FullTag(&self, stopper: Rc<RefCell<Item>>) -> String {
+    // XXX incomplete comparision
+    if self.parent.upgrade().is_none()
+      || self
+        .parent
+        .upgrade()
+        .unwrap()
+        .borrow()
+        .parent
+        .upgrade()
+        .is_none()
+      || self.parent.upgrade().unwrap().borrow().tag == stopper.borrow().tag
+    {
+      String::from(&self.tag)
+    } else {
+      format!(
+        "{}::{}",
+        self.parent.upgrade().unwrap().borrow().FullTag(stopper),
+        self.tag
+      )
+    }
+  }
+}
+
 impl std::fmt::Debug for Item {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     let parent_name = if let Some(p) = self.parent.upgrade() {
@@ -238,5 +263,16 @@ mod test {
     assert_eq!(config.Find("A::AB", ""), "");
     assert_eq!(config.Find("A::AC", ""), "30");
     assert_eq!(config.Find("A::AD", ""), "");
+  }
+
+  #[test]
+  pub fn test_fulltag() {
+    let config = super::Configuration::new();
+    let node = config.lookup("A::AB::AAA::AAAB::AAAAA", true).unwrap();
+    assert_eq!(node.clone().borrow().tag, "AAAAA");
+    assert_eq!(
+      node.borrow().FullTag(config.root.unwrap()),
+      "A::AB::AAA::AAAB::AAAAA"
+    );
   }
 }
