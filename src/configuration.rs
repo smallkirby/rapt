@@ -19,7 +19,6 @@ pub struct Item {
 
 impl Item {
   pub fn FullTag(&self, stopper: Rc<RefCell<Item>>) -> String {
-    // XXX incomplete comparision
     if self.parent.upgrade().is_none()
       || self
         .parent
@@ -29,7 +28,7 @@ impl Item {
         .parent
         .upgrade()
         .is_none()
-      || self.parent.upgrade().unwrap().borrow().tag == stopper.borrow().tag
+      || Rc::ptr_eq(&self.parent.upgrade().clone().unwrap(), &stopper)
     {
       String::from(&self.tag)
     } else {
@@ -271,8 +270,10 @@ mod test {
     let node = config.lookup("A::AB::AAA::AAAB::AAAAA", true).unwrap();
     assert_eq!(node.clone().borrow().tag, "AAAAA");
     assert_eq!(
-      node.borrow().FullTag(config.root.unwrap()),
+      node.borrow().FullTag(config.root.clone().unwrap()),
       "A::AB::AAA::AAAB::AAAAA"
     );
+    let aaa = config.lookup("A::AB::AAA", false).unwrap();
+    assert_eq!(node.borrow().FullTag(aaa), "AAAB::AAAAA");
   }
 }
