@@ -9,11 +9,16 @@ pub enum APT_CMD {
   APT_GET,
 }
 
-pub struct CommandLine {}
+#[derive(Debug, Default)]
+pub struct CommandLine {
+  ArgList: Vec<Args>,
+}
 
 impl CommandLine {
   pub fn new() -> CommandLine {
-    CommandLine {}
+    CommandLine {
+      ..Default::default()
+    }
   }
 
   pub fn parse(
@@ -42,6 +47,12 @@ impl CommandLine {
 
         let args = GetCommandArgs(APT_CMD::APT, &called_cmd);
         log::trace!("args: {:?}", args);
+        self.ArgList = args;
+
+        match self.doParse(&std::env::args().collect::<Vec<_>>()[1..]) {
+          Ok(()) => {}
+          Err(msg) => panic!(msg), // XXX shouldn't panic
+        }
       }
       None => {
         unimplemented!();
@@ -49,6 +60,51 @@ impl CommandLine {
     };
 
     vec![]
+  }
+
+  // main func of parse command line
+  // @return: true iif success
+  pub fn doParse(&mut self, cargs: &[String]) -> Result<(), String> {
+    let mut filelist = vec![];
+    for opt in cargs {
+      // not an option
+      if opt.chars().nth(0).unwrap() != '-' {
+        filelist.push(opt);
+        continue;
+      }
+
+      if let Some(c) = opt.chars().nth(1) {
+        if c == '-' && opt.len() == 2 {
+          // two dashes mean end of option processing
+          unimplemented!();
+        } else if c == '-' {
+          // long option
+          log::trace!("long option processing");
+          unimplemented!();
+        } else {
+          log::trace!("short option processing");
+          for c in opt[1..].chars() {
+            let matched_opt = self
+              .ArgList
+              .iter()
+              .filter(|op| op.short == String::from(c))
+              .collect::<Vec<_>>();
+            if matched_opt.len() == 0 {
+              return Err(format!("Command line option '{}' [from {}] is not understood in combination with the other options.", c, opt));
+            } else {
+              self.handleOpt();
+            }
+          }
+          continue;
+        }
+      }
+    }
+    Ok(())
+  }
+
+  // helper function
+  pub fn handleOpt(&mut self) {
+    unimplemented!();
   }
 }
 
