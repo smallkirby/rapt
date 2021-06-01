@@ -15,6 +15,41 @@ impl CommandLine {
   pub fn new() -> CommandLine {
     CommandLine {}
   }
+
+  pub fn parse(
+    &mut self,
+    binary: APT_CMD,
+    config: &mut configuration::Configuration,
+  ) -> Vec<Dispatch> {
+    log::warn!("should call pkgInitConfig()"); // XXX
+    config.BinarySpecificConfiguration(&std::env::args().collect::<Vec<_>>()[0]);
+
+    let cmds_with_help = GetCommands();
+    let cmds = cmds_with_help
+      .into_iter()
+      .map(|c| Dispatch::new(c.com, c.handler))
+      .collect::<Vec<_>>();
+    match GetCommand(&cmds, std::env::args().collect()) {
+      Some(called_cmd) => {
+        log::trace!("cmd: {:?}", called_cmd);
+        config.BinaryCommandSpecificConfiguration(
+          &std::env::args().collect::<Vec<_>>()[0],
+          &called_cmd,
+        );
+
+        // XXX needed???
+        config.MoveSubTree(&format!("Binary::{}", helper::getBinName()), "");
+
+        let args = GetCommandArgs(APT_CMD::APT, &called_cmd);
+        log::trace!("args: {:?}", args);
+      }
+      None => {
+        unimplemented!();
+      }
+    };
+
+    vec![]
+  }
 }
 
 pub struct AptDispatchWithHelp {
@@ -28,6 +63,7 @@ pub struct Dispatch {
   pub handler: fn(&CommandLine) -> bool,
 }
 
+#[derive(Debug, PartialEq, Default)]
 pub struct Args {
   name: String,
   short: String,
@@ -83,8 +119,6 @@ impl std::fmt::Debug for Dispatch {
   }
 }
 
-impl CommandLine {}
-
 pub fn GetCommands() -> Vec<AptDispatchWithHelp> {
   vec![
     AptDispatchWithHelp::new("list", DoList, "<help not imp>"),
@@ -93,14 +127,14 @@ pub fn GetCommands() -> Vec<AptDispatchWithHelp> {
   ]
 }
 
-pub fn GetCommand(cmds: &Vec<Dispatch>, cmdline: Vec<String>) -> Option<&Dispatch> {
+pub fn GetCommand(cmds: &Vec<Dispatch>, cmdline: Vec<String>) -> Option<String> {
   for s in cmdline {
     if s == "--" {
       return None;
     }
     for cmd in cmds {
       if cmd.com == s {
-        return Some(cmd);
+        return Some(String::from(&cmd.com));
       }
     }
   }
@@ -143,37 +177,6 @@ pub fn AddDefaultArgs(args: &mut Vec<Args>) {
   args.push(Args::new("version", "v", "version", 0));
 }
 
-pub fn ParseCommandLine(
-  cmdl: &mut CommandLine,
-  binary: APT_CMD,
-  config: &mut configuration::Configuration,
-) -> Vec<Dispatch> {
-  log::warn!("should call pkgInitConfig()"); // XXX
-  config.BinarySpecificConfiguration(&std::env::args().collect::<Vec<_>>()[0]);
-
-  let cmds_with_help = GetCommands();
-  let cmds = cmds_with_help
-    .into_iter()
-    .map(|c| Dispatch::new(c.com, c.handler))
-    .collect::<Vec<_>>();
-  match GetCommand(&cmds, std::env::args().collect()) {
-    Some(called_cmd) => {
-      log::trace!("cmd: {:?}", called_cmd);
-      config.BinaryCommandSpecificConfiguration(
-        &std::env::args().collect::<Vec<_>>()[0],
-        &called_cmd.com,
-      );
-    }
-    None => {
-      unimplemented!();
-    }
-  };
-
-  config.MoveSubTree(&format!("Binary::{}", helper::getBinName()), "");
-
-  vec![]
-}
-
 pub fn DoList(handler: &CommandLine) -> bool {
   unimplemented!();
 }
@@ -189,7 +192,7 @@ pub struct APT {
 
 impl APT {
   pub fn run(&mut self) {
-    ParseCommandLine(&mut self.cmdl, APT_CMD::APT, &mut self.config);
+    self.cmdl.parse(APT_CMD::APT, &mut self.config);
   }
 }
 
@@ -226,7 +229,7 @@ mod tests {
       .collect::<Vec<_>>();
     let called_cmd =
       super::GetCommand(&cmds, vec![String::from("apt"), String::from("list")]).unwrap();
-    assert_eq!(called_cmd.com, "list");
+    assert_eq!(called_cmd, "list");
   }
 
   #[test]
@@ -250,6 +253,6 @@ mod tests {
       .collect::<Vec<_>>();
     let called_cmd =
       super::GetCommand(&cmds, vec![String::from("apt"), String::from("help")]).unwrap();
-    assert_eq!(called_cmd.com, "help");
+    assert_eq!(called_cmd, "help");
   }
 }
