@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
+use crate::helper;
+
 type LinkNode = Option<Rc<RefCell<Item>>>;
 
 #[derive(Debug, Default)]
@@ -290,8 +292,7 @@ impl Configuration {
   }
 
   pub fn BinarySpecificConfiguration(&mut self, binary: &str) {
-    let bpath = std::path::PathBuf::from(binary);
-    let bfilename = bpath.file_name().unwrap().to_str().unwrap();
+    let bfilename = helper::getBinName();
     log::trace!("binary name: {:?}", bfilename);
     if bfilename == "rapt" || bfilename == "rapt-config" {
       self.CndSet("Binary::apt::APT::Color", "true");
@@ -314,12 +315,11 @@ impl Configuration {
     } else {
       unimplemented!();
     }
-    self.Set("Binary", bfilename);
+    self.Set("Binary", &bfilename);
   }
 
   pub fn BinaryCommandSpecificConfiguration(&self, binary: &str, cmd: &String) {
-    let binpath = std::path::PathBuf::from(&binary);
-    match binpath.file_name().unwrap().to_str().unwrap() {
+    match helper::getBinName().as_str() {
       "rapt" => {}
       _ => {
         unimplemented!();

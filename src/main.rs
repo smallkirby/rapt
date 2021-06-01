@@ -1,6 +1,7 @@
 use simple_logger::SimpleLogger;
 
 pub mod configuration;
+pub mod helper;
 
 #[derive(Debug, PartialEq)]
 pub enum APT_CMD {
@@ -167,6 +168,8 @@ pub fn ParseCommandLine(
       unimplemented!();
     }
   };
+
+  config.MoveSubTree(&format!("Binary::{}", helper::getBinName()), "");
 
   vec![]
 }
