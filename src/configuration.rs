@@ -129,6 +129,26 @@ impl Configuration {
     }
   }
 
+  // delete all direct children of @name
+  pub fn ClearForce(&self, name: &str) {
+    if let Some(top) = self.lookup(name, false) {
+      let mut prev = top.borrow().child.clone();
+      let mut item = top.borrow().child.clone();
+      let mut tmp;
+      while !item.is_none() {
+        if top.borrow().child.clone().unwrap().borrow().tag == item.clone().unwrap().borrow().tag {
+          // first child, so change head
+          top.borrow_mut().child = item.clone().unwrap().borrow().next.clone();
+        }
+        tmp = item;
+        item = tmp.clone().unwrap().borrow().next.clone();
+        prev.clone().unwrap().borrow_mut().next = item.clone();
+        tmp.clone().unwrap().borrow_mut().next = None;
+        tmp.clone().unwrap().borrow_mut().parent = Weak::new();
+      }
+    }
+  }
+
   pub fn Find(&self, name: &str, default: &str) -> String {
     if let Some(item) = self.lookup(name, false) {
       if item.borrow().value.len() != 0 {
@@ -262,6 +282,22 @@ mod test {
     assert_eq!(config.Find("A::AB", ""), "");
     assert_eq!(config.Find("A::AC", ""), "30");
     assert_eq!(config.Find("A::AD", ""), "");
+
+    // delete A's direct children
+    config.Set("A::AA", "10");
+    config.Set("A::AB", "xx");
+    config.Set("A::AC", "30");
+    config.Set("A::AD", "xx");
+    config.ClearForce("A");
+    assert_eq!(config.Find("A::AA", ""), "");
+    assert_eq!(config.Find("A::AB", ""), "");
+    assert_eq!(config.Find("A::AC", ""), "");
+    assert_eq!(config.Find("A::AD", ""), "");
+
+    // do nothing when the item doesn't exist
+    config.Clear("X", "");
+    config.ClearForce("X");
+    assert_eq!(config.Find("X", ""), "");
   }
 
   #[test]
