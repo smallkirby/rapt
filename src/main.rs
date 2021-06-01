@@ -106,24 +106,6 @@ pub fn GetCommand(cmds: &Vec<Dispatch>, cmdline: Vec<String>) -> Option<&Dispatc
   None
 }
 
-pub fn BinaryCommandSpecificConfiguration(
-  binary: &str,
-  cmd: &String,
-  config: &mut configuration::Configuration,
-) {
-  let binpath = std::path::PathBuf::from(&binary);
-  log::trace!(
-    "bin name: {:?}",
-    binpath.file_name().unwrap().to_str().unwrap()
-  );
-  match binpath.file_name().unwrap().to_str().unwrap() {
-    "rapt" => {}
-    _ => {
-      unimplemented!();
-    }
-  }
-}
-
 pub fn GetCommandArgs(program: APT_CMD, cmd: &String) -> Vec<Args> {
   let mut args = vec![];
 
@@ -165,6 +147,9 @@ pub fn ParseCommandLine(
   binary: APT_CMD,
   config: &mut configuration::Configuration,
 ) -> Vec<Dispatch> {
+  log::warn!("should call pkgInitConfig()"); // XXX
+  config.BinarySpecificConfiguration(&std::env::args().collect::<Vec<_>>()[0]);
+
   let cmds_with_help = GetCommands();
   let cmds = cmds_with_help
     .into_iter()
@@ -172,18 +157,18 @@ pub fn ParseCommandLine(
     .collect::<Vec<_>>();
   match GetCommand(&cmds, std::env::args().collect()) {
     Some(called_cmd) => {
-      log::trace!("{:?}", called_cmd);
-      BinaryCommandSpecificConfiguration(
+      log::trace!("cmd: {:?}", called_cmd);
+      config.BinaryCommandSpecificConfiguration(
         &std::env::args().collect::<Vec<_>>()[0],
         &called_cmd.com,
-        config,
       );
-      vec![]
     }
     None => {
       unimplemented!();
     }
-  }
+  };
+
+  vec![]
 }
 
 pub fn DoList(handler: &CommandLine) -> bool {

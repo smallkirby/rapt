@@ -288,6 +288,44 @@ impl Configuration {
     }
     return Some(item);
   }
+
+  pub fn BinarySpecificConfiguration(&mut self, binary: &str) {
+    let bpath = std::path::PathBuf::from(binary);
+    let bfilename = bpath.file_name().unwrap().to_str().unwrap();
+    log::trace!("binary name: {:?}", bfilename);
+    if bfilename == "rapt" || bfilename == "rapt-config" {
+      self.CndSet("Binary::apt::APT::Color", "true");
+      self.CndSet("Binary::apt::APT::Cache::Show::Version", "2");
+      self.CndSet("Binary::apt::APT::Cache::AllVersions", "false");
+      self.CndSet("Binary::apt::APT::Cache::ShowVirtuals", "true");
+      self.CndSet("Binary::apt::APT::Cache::Search::Version", "2");
+      self.CndSet("Binary::apt::APT::Cache::ShowDependencyType", "true");
+      self.CndSet("Binary::apt::APT::Cache::ShowVersion", "true");
+      self.CndSet("Binary::apt::APT::Get::Upgrade-Allow-New", "true");
+      self.CndSet("Binary::apt::APT::Cmd::Show-Update-Stats", "true");
+      self.CndSet("Binary::apt::DPkg::Progress-Fancy", "true");
+      self.CndSet("Binary::apt::APT::Keep-Downloaded-Packages", "false");
+      self.CndSet(
+        "Binary::apt::APT::Get::Update::InteractiveReleaseInfoChanges",
+        "true",
+      );
+      self.CndSet("Binary::apt::APT::Cmd::Pattern-Only", "true");
+      self.CndSet("Binary::apt::Dpkg::Lock::Timeout", "120");
+    } else {
+      unimplemented!();
+    }
+    self.Set("Binary", bfilename);
+  }
+
+  pub fn BinaryCommandSpecificConfiguration(&self, binary: &str, cmd: &String) {
+    let binpath = std::path::PathBuf::from(&binary);
+    match binpath.file_name().unwrap().to_str().unwrap() {
+      "rapt" => {}
+      _ => {
+        unimplemented!();
+      }
+    }
+  }
 }
 
 #[cfg(test)]
