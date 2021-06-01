@@ -149,6 +149,82 @@ impl Configuration {
     }
   }
 
+  // make tree of @oldname head child of @_oldname
+  // the very item with @oldname is deleted
+  // @oldname, @newname: full path
+  pub fn MoveSubTree(&self, oldname: &str, _newname: &str) {
+    if String::from(oldname).len() == 0 {
+      return;
+    }
+    if oldname == _newname || format!("{}::", oldname) == _newname {
+      return;
+    }
+    let mut top = self.lookup(oldname, false);
+    if top.is_none() {
+      return;
+    }
+    let oldroot = top.clone();
+    let stopper = top.clone();
+    let mut newname = String::from(_newname);
+    if newname.len() != 0 {
+      newname.push_str(_newname);
+    }
+
+    top.clone().unwrap().borrow_mut().value.clear();
+    top = top.clone().unwrap().borrow().child.clone();
+    // XXX this line removes reference to its head child,
+    // which make refcnt of the child 0, so things would go bad ...?
+    //stopper.clone().unwrap().borrow_mut().child = None;
+
+    while !top.is_none() {
+      if !top.clone().unwrap().borrow().child.is_none() {
+        top = top.clone().unwrap().borrow().child.clone();
+        continue;
+      }
+      while !top.is_none() && top.clone().unwrap().borrow().next.is_none() {
+        // finished deleting top's other brothers
+        self.Set(
+          &format!(
+            "{}{}",
+            newname,
+            top
+              .clone()
+              .unwrap()
+              .borrow()
+              .FullTag(oldroot.clone().unwrap())
+          ),
+          &top.clone().unwrap().borrow().value,
+        );
+        let tmp = top.clone();
+        top = top.unwrap().borrow().parent.upgrade();
+        tmp.clone().unwrap().borrow_mut().next = None;
+        tmp.clone().unwrap().borrow_mut().parent = Weak::new();
+        if !top.is_none() && Rc::ptr_eq(&top.clone().unwrap(), &stopper.clone().unwrap()) {
+          return;
+        }
+      }
+
+      self.Set(
+        &format!(
+          "{}{}",
+          newname,
+          top
+            .clone()
+            .unwrap()
+            .borrow()
+            .FullTag(oldroot.clone().unwrap())
+        ),
+        &top.clone().unwrap().borrow().value,
+      );
+      let tmp = top.clone();
+      if !top.is_none() {
+        top = top.unwrap().borrow().next.clone();
+      }
+      tmp.clone().unwrap().borrow_mut().next = None;
+      tmp.clone().unwrap().borrow_mut().parent = Weak::new();
+    }
+  }
+
   pub fn Find(&self, name: &str, default: &str) -> String {
     if let Some(item) = self.lookup(name, false) {
       if item.borrow().value.len() != 0 {
@@ -311,5 +387,27 @@ mod test {
     );
     let aaa = config.lookup("A::AB::AAA", false).unwrap();
     assert_eq!(node.borrow().FullTag(aaa), "AAAB::AAAAA");
+  }
+
+  #[test]
+  pub fn test_MoveSubTree() {
+    let config = super::Configuration::new();
+    config.Set("A", "A");
+    config.Set("A::AA0", "AA0");
+    config.Set("A::AA1", "AA1");
+    config.Set("A::AA2", "AA2");
+    config.Set("A::AA1::AAA0", "AAA0");
+    config.Set("A::AA1::AAA1", "AAA1");
+    config.Set("A::AA1::AAA1::AAAA0", "AAAA0");
+    config.Set("A::AA1::AAA1::AAAA1", "AAAA1");
+    config.Set("B", "B");
+    config.Set("C", "C");
+
+    config.MoveSubTree("A::AA1", "");
+
+    config.lookup("AAA0", false).unwrap();
+    config.lookup("AAA1", false).unwrap();
+    config.lookup("AAA1::AAAA0", false).unwrap();
+    config.lookup("AAA1::AAAA1", false).unwrap();
   }
 }
