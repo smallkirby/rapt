@@ -12,6 +12,7 @@ pub enum APT_CMD {
 #[derive(Debug, Default)]
 pub struct CommandLine {
   ArgList: Vec<Args>,
+  FileList: Vec<String>,
 }
 
 impl CommandLine {
@@ -65,11 +66,10 @@ impl CommandLine {
   // main func of parse command line
   // @return: true iif success
   pub fn doParse(&mut self, cargs: &[String]) -> Result<(), String> {
-    let mut filelist = vec![];
     for opt in cargs {
       // not an option
       if opt.chars().nth(0).unwrap() != '-' {
-        filelist.push(opt);
+        self.FileList.push(String::from(opt));
         continue;
       }
 
