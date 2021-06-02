@@ -236,6 +236,18 @@ impl Configuration {
     String::from(default)
   }
 
+  pub fn FindB(&self, name: &str, default: bool) -> bool {
+    if let Some(item) = self.lookup(name, false) {
+      if item.borrow().value.len() != 0 {
+        helper::str2bool(&item.borrow().value, default)
+      } else {
+        default
+      }
+    } else {
+      default
+    }
+  }
+
   // put child to the head child of @parent
   pub fn push_child(&self, parent: Rc<RefCell<Item>>, val: &str, tag: &str) -> LinkNode {
     let child = Rc::new(RefCell::new(Item {

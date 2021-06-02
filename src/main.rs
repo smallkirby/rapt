@@ -3,6 +3,10 @@ pub mod configuration;
 pub mod helper;
 pub mod list;
 pub mod search;
+pub mod cache;
+pub mod prog;
+pub mod update;
+pub mod slist;
 
 use cmdline::{AptDispatchWithHelp, Args, CommandLine, Dispatch, APT_CMD};
 use simple_logger::SimpleLogger;

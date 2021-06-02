@@ -2,6 +2,7 @@ use crate::configuration;
 use crate::helper;
 use crate::list;
 use crate::search;
+use crate::update;
 
 #[derive(Debug, PartialEq)]
 pub enum APT_CMD {
@@ -78,8 +79,8 @@ impl Args {
 
 #[derive(Debug, Default)]
 pub struct CommandLine {
-  ArgList: Vec<Args>,
-  FileList: Vec<String>,
+  pub ArgList: Vec<Args>,
+  pub FileList: Vec<String>,
 }
 
 impl CommandLine {
@@ -197,6 +198,7 @@ pub fn GetCommands() -> Vec<AptDispatchWithHelp> {
   vec![
     AptDispatchWithHelp::new("list", list::DoList, "<help not imp>"),
     AptDispatchWithHelp::new("search", search::DoSearch, "<help not imp>"),
+    AptDispatchWithHelp::new("update", update::DoUpdate, "<help not imp>"),
     AptDispatchWithHelp::new("help", list::DoList, "<help not imp>"),
   ]
 }

@@ -1,6 +1,12 @@
 use crate::cmdline;
 
 pub fn FullTextSearch(cmdl: &cmdline::CommandLine) -> bool {
+  // XXX read/generate caches
+
+  if cmdl.FileList.len() < 1 {
+    println!("You must give at least one search pattern.");
+  }
+
   unimplemented!();
 }
 
