@@ -1,5 +1,6 @@
 use simple_logger::SimpleLogger;
 
+pub mod fetcher;
 pub mod slist;
 
 fn main() {
