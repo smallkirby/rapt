@@ -1,5 +1,7 @@
 use simple_logger::SimpleLogger;
 
+pub mod slist;
+
 fn main() {
   println!("== rapt ==");
   SimpleLogger::new()
