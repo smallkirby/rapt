@@ -9,3 +9,6 @@ edition = "2018"
 [dependencies]
 log = "0.4.11"
 simple_logger = "1.11.0"
+flate2 = "1.0"
+curl = "0.4.38"
+bytes = "1.0.1"
