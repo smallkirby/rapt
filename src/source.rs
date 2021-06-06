@@ -16,9 +16,11 @@ pub struct SourcePackage {
   pub testsuite: String,
   pub homepage: String,
   pub directory: String,
-  pub chksum_sha1: String,
+  pub chksum_md5: String,
   pub essential: bool,
   pub suggests: Vec<String>,
+  pub filename: String,
+  pub description: String,
 }
 
 impl SourcePackage {
@@ -125,8 +127,34 @@ impl SourcePackage {
             item.suggests.push(s.to_string());
           }
         }
+        "Breaks" => {
+          log::debug!("ignoring Breaks.");
+        }
+        "Filename" => {
+          item.filename = parts
+            .nth(0)
+            .ok_or(format!("invalid 'Filename' format: {}", line))?
+            .to_string();
+        }
+        "MD5sum" => {
+          item.chksum_md5 = parts
+            .nth(0)
+            .ok_or(format!("invalid 'MD5sum' format: {}", line))?
+            .to_string();
+        }
+        "Description" => {
+          let _desc = parts
+            .map(|s| String::from(*s))
+            .collect::<Vec<_>>()
+            .join(" ");
+          item.description = _desc;
+        }
         _ => {
-          log::debug!("ignoring unknown package field: {}", title);
+          log::debug!(
+            "{}: ignoring unknown package field: {}",
+            item.package,
+            title
+          );
         }
       }
     }
@@ -252,6 +280,12 @@ pub mod test {
     );
     assert_eq!(dpkg.suggests.contains(&"apt".to_string()), true);
     assert_eq!(dpkg.suggests.contains(&"debsig-verify".to_string()), true);
+    assert_eq!(
+      dpkg.filename,
+      "pool/main/d/dpkg/dpkg_1.19.7ubuntu3_amd64.deb"
+    );
+    assert_eq!(dpkg.chksum_md5, "f595c79475d3c2ac808eaac389071c35");
+    assert_eq!(dpkg.description, "Debian package management system");
   }
 
   #[test]

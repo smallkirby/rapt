@@ -39,3 +39,6 @@ required, important, standard, optional, extra。ディストロに詰めるパ�
 
 ## Pre-Depends
 https://www.debian.org/doc/debian-policy/ch-relationships.html
+
+## Tasks
+なんやねんこれ
