@@ -118,6 +118,13 @@ impl SourcePackage {
             };
           }
         }
+        "Suggests" => {
+          let _sug = parts.map(|s| String::from(*s)).collect::<Vec<_>>().join("");
+          let sug = _sug.split(",").map(|s| s.trim()).collect::<Vec<_>>();
+          for s in sug {
+            item.suggests.push(s.to_string());
+          }
+        }
         _ => {
           log::debug!("ignoring unknown package field: {}", title);
         }
@@ -227,12 +234,24 @@ pub mod test {
   fn test_package_source_from_row() {
     let sample = std::fs::read_to_string("test/sample-index").unwrap();
     let psources = super::SourcePackage::from_row(&sample).unwrap();
+    let dpkg = &psources[0];
     assert_eq!(psources.len(), 3);
-    assert_eq!(psources[0].package, "dpkg");
+    assert_eq!(dpkg.package, "dpkg");
+    assert_eq!(dpkg.pre_depends["libzstd1"].as_ref().unwrap(), "1.3.2");
+    assert_eq!(dpkg.arch[0], super::Arch::AMD64);
+    assert_eq!(dpkg.version, "1.19.7ubuntu3");
+    assert_eq!(dpkg.essential, true);
+    assert_eq!(dpkg.section, super::Section::ADMIN);
     assert_eq!(
-      psources[0].pre_depends["libzstd1"].as_ref().unwrap(),
-      "1.3.2"
+      dpkg.maintainer,
+      "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>"
     );
+    assert_eq!(
+      dpkg.original_maintainer,
+      "Dpkg Developers <debian-dpkg@lists.debian.org>"
+    );
+    assert_eq!(dpkg.suggests.contains(&"apt".to_string()), true);
+    assert_eq!(dpkg.suggests.contains(&"debsig-verify".to_string()), true);
   }
 
   #[test]
