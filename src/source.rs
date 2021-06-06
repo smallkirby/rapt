@@ -28,8 +28,33 @@ impl SourcePackage {
     let mut items = vec![];
     let mut item = SourcePackage::default();
     let lines = file.split("\n").collect::<Vec<_>>();
+    let mut cont_description = false;
+    let mut tmp_description = String::new();
 
-    for line in lines {
+    for (ix, line) in lines.iter().enumerate() {
+      if cont_description {
+        if ix < lines.len() - 1
+          && lines
+            .iter()
+            .nth(ix + 1)
+            .unwrap()
+            .chars()
+            .into_iter()
+            .nth(0)
+            .unwrap()
+            == ' '
+        {
+          cont_description = true;
+          tmp_description.push_str(&format!("\n{}", &line[1..]));
+        } else {
+          cont_description = false;
+          tmp_description.push_str(&format!("\n{}", &line[1..]));
+          item.description = tmp_description;
+          tmp_description = String::new();
+        }
+        continue;
+      }
+
       if line.len() == 0 {
         match item.verify() {
           Ok(()) => {
@@ -143,11 +168,35 @@ impl SourcePackage {
             .to_string();
         }
         "Description" => {
-          let _desc = parts
-            .map(|s| String::from(*s))
-            .collect::<Vec<_>>()
-            .join(" ");
-          item.description = _desc;
+          if ix < lines.len() - 1
+            && lines
+              .iter()
+              .nth(ix + 1)
+              .unwrap()
+              .chars()
+              .into_iter()
+              .nth(0)
+              .unwrap()
+              == ' '
+          {
+            cont_description = true;
+            tmp_description.push_str(
+              &parts
+                .map(|s| String::from(*s))
+                .collect::<Vec<_>>()
+                .join(" "),
+            );
+          } else {
+            cont_description = false;
+            tmp_description.push_str(
+              &parts
+                .map(|s| String::from(*s))
+                .collect::<Vec<_>>()
+                .join(" "),
+            );
+            item.description = tmp_description;
+            tmp_description = String::new();
+          }
         }
         _ => {
           //log::debug!(
@@ -285,7 +334,10 @@ pub mod test {
       "pool/main/d/dpkg/dpkg_1.19.7ubuntu3_amd64.deb"
     );
     assert_eq!(dpkg.chksum_md5, "f595c79475d3c2ac808eaac389071c35");
-    assert_eq!(dpkg.description, "Debian package management system");
+    assert_eq!(
+      dpkg.description,
+      "Debian package management system\nwaiwai second sentence.\nuouo fish life."
+    );
   }
 
   #[test]

@@ -14,8 +14,11 @@ $ file /var/cache/apt/pkgcache.bin
 
 # ソースリスト
 ソースリストは`/etc/sources.list`もしくは`/etc/sources.list.d`以下のファイル。`update`時にこれらのリストのリポジトリからメタデータをfetchしてきて`/var/cache/apt/pkgccache.bin`に入れる。  
-フォーマット: https://people.debian.org/~jak/apt2-doc/apt-Cache-Format.html
+フォーマット: https://people.debian.org/~jak/apt2-doc/apt-Cache-Format.html  
 
+このindex(Packagesは`/var/lib/apt/lists`以下に保存される)。  
+実際にインストールされたパッケージ一覧は`/var/lib/dpkg/status`に保存される。
+  
 # Source Package
 format: https://wiki.debian.org/Packaging/SourcePackage?action=show&redirect=SourcePackage
 
@@ -42,3 +45,6 @@ https://www.debian.org/doc/debian-policy/ch-relationships.html
 
 ## Tasks
 なんやねんこれ
+
+## Description
+複数行になり得る(leading space)
