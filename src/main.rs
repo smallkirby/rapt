@@ -2,6 +2,7 @@ use simple_logger::SimpleLogger;
 
 pub mod fetcher;
 pub mod slist;
+pub mod source;
 
 fn main() {
   println!("== rapt ==");
