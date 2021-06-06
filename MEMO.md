@@ -6,12 +6,8 @@ Toy version of apt written in apt.
 https://github.com/Debian/apt/blob/main/doc/apt-get.8.xml
 
 # cache file
-aptのキャッシュファイルは`/var/cache/apt/pkgcache.bin`.
-```.sh
-$ file /var/cache/apt/pkgcache.bin
-/var/cache/apt/pkgcache.bin: APT cache data, version 16.0, little-endian, 121553 packages, 120925 versions
-```
-
+removeしたdebファイルは`/var/cache/apt/archives/`に保存されることがあり、reinstall時に再度ダウンロードしなくてすむようにキャッシュ。
+aptのキャッシュファイルは`/var/cache/apt/pkgcache.bin`.こいつが何してるかは正確にはわかってないが、まぁ多分Packagesの中身(且つpriority等を解決した結果)をシリアライズして入れることで計算の手間を省いてそう。raptではめんどいので毎回fetchするし毎回計算する。
 # ソースリスト
 ソースリストは`/etc/sources.list`もしくは`/etc/sources.list.d`以下のファイル。`update`時にこれらのリストのリポジトリからメタデータをfetchしてきて`/var/cache/apt/pkgccache.bin`に入れる。  
 フォーマット: https://people.debian.org/~jak/apt2-doc/apt-Cache-Format.html  
