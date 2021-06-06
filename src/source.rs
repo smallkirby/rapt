@@ -128,7 +128,7 @@ impl SourcePackage {
           }
         }
         "Breaks" => {
-          log::debug!("ignoring Breaks.");
+          //log::debug!("ignoring Breaks.");
         }
         "Filename" => {
           item.filename = parts
@@ -150,11 +150,11 @@ impl SourcePackage {
           item.description = _desc;
         }
         _ => {
-          log::debug!(
-            "{}: ignoring unknown package field: {}",
-            item.package,
-            title
-          );
+          //log::debug!(
+          //  "{}: ignoring unknown package field: {}",
+          //  item.package,
+          //  title
+          //);
         }
       }
     }

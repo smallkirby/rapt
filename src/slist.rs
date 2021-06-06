@@ -51,6 +51,25 @@ impl Source {
   }
 }
 
+pub fn parseSourceFile(filename: &str) -> Result<Vec<Source>, String> {
+  let mut sources = vec![];
+  let source_lines = if let Ok(_s) = std::fs::read_to_string("sources.list") {
+    _s
+  } else {
+    return Err(format!("Failed to open source list file: {}", filename));
+  };
+  for line in source_lines.split("\n").collect::<Vec<_>>() {
+    if line.len() != 0 {
+      match parseSourceLine(line) {
+        Ok(mut items) => sources.append(&mut items),
+        Err(msg) => return Err(msg),
+      }
+    };
+  }
+
+  Ok(sources)
+}
+
 pub fn parseSourceLine(line: &str) -> Result<Vec<Source>, String> {
   let parts = line.split(" ").collect::<Vec<_>>();
   if parts.len() < 4 {
