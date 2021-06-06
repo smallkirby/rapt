@@ -9,7 +9,9 @@ fn main() {
     .with_level(log::LevelFilter::Warn)
     .init()
     .unwrap();
-  
-  let source = &slist::parseSourceLine("deb http://jp.archive.ubuntu.com/ubuntu/ focal main restricted").unwrap()[0];
+
+  let source =
+    &slist::parseSourceLine("deb http://jp.archive.ubuntu.com/ubuntu/ focal main restricted")
+      .unwrap()[0];
   println!("{:?}", fetcher::fetchIndex(&source));
 }

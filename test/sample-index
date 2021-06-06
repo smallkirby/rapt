@@ -1,0 +1,76 @@
+Package: dpkg
+Format: 3.0 (native)
+Binary: dpkg, libdpkg-dev, dpkg-dev, libdpkg-perl, dselect
+Architecture: any all
+Version: 1.19.7ubuntu3
+Priority: required
+Section: admin
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Dpkg Developers <debian-dpkg@lists.debian.org>
+Uploaders: Guillem Jover <guillem@debian.org>
+Standards-Version: 4.3.0
+Build-Depends: debhelper (>= 11), pkg-config, gettext (>= 0.19.7), po4a (>= 0.43), zlib1g-dev, zstd, libbz2-dev, libzstd-dev, liblzma-dev, libselinux1-dev [linux-any], libncurses-dev (>= 6.1+20180210) | libncursesw5-dev, bzip2 <!nocheck>, xz-utils <!nocheck>
+Testsuite: autopkgtest
+Homepage: https://wiki.debian.org/Teams/Dpkg
+Vcs-Browser: https://git.dpkg.org/cgit/dpkg/dpkg.git
+Vcs-Git: https://git.dpkg.org/git/dpkg/dpkg.git
+Directory: pool/main/d/dpkg
+Package-List:
+ dpkg deb admin required arch=any essential=yes
+ dpkg-dev deb utils optional arch=all
+ dselect deb admin optional arch=any
+ libdpkg-dev deb libdevel optional arch=any
+ libdpkg-perl deb perl optional arch=all
+Files:
+ 7e6286320346aeaf2542fdbe015da062 2254 dpkg_1.19.7ubuntu3.dsc
+ ca6e701651ca03f42384bd2b1703db27 4731220 dpkg_1.19.7ubuntu3.tar.xz
+Checksums-Sha1:
+ 6c0aa8330669b65a89ea40bb44861f85505fba26 2254 dpkg_1.19.7ubuntu3.dsc
+ c999bf522de137009ba1a41c81f87ca3d47b3d10 4731220 dpkg_1.19.7ubuntu3.tar.xz
+Checksums-Sha256:
+ 462ecb9f8af5612f7fbc1181484d8376569f95bb0dc7b7c53891819a0434e81a 2254 dpkg_1.19.7ubuntu3.dsc
+ 598eba200da2e1b6097f11537c49e9ad7eb2292e148259bd76f9cd184f281853 4731220 dpkg_1.19.7ubuntu3.tar.xz
+Testsuite-Triggers: autoconf, build-essential, file, pkg-config
+
+Package: zsh-doc
+Architecture: all
+Version: 5.8-3ubuntu1
+Multi-Arch: foreign
+Priority: optional
+Section: doc
+Source: zsh
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Zsh Maintainers <pkg-zsh-devel@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 5587
+Depends: zsh-common (= 5.8-3ubuntu1)
+Filename: pool/main/z/zsh/zsh-doc_5.8-3ubuntu1_all.deb
+Size: 2708824
+MD5sum: 035bcfeca2582ed871372bebb4730cb8
+SHA1: 75acc34aca47b72058373e738ac0f988c0600796
+SHA256: c88d366f5fa8cfa4bfd912ed6414c614e53fcbe30229199f9bccffeb39099c62
+Homepage: https://www.zsh.org/
+Description: zsh documentation - info/HTML format
+Description-md5: 9b5459fce7bedf54d5694a22e68389c7
+
+Package: zsys
+Architecture: amd64
+Version: 0.4.5
+Built-Using: golang-1.13 (= 1.13.8-1ubuntu1)
+Priority: optional
+Section: admin
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 12764
+Depends: libc6 (>= 2.4), libnvpair1linux (>= 0.8.2), libzfs2linux (>= 0.8.3), init-system-helpers (>= 1.52), grub2-common
+Filename: pool/main/z/zsys/zsys_0.4.5_amd64.deb
+Size: 3615600
+MD5sum: b048dbdaf5c6b75d5fe53278f17f9042
+SHA1: 53e48767d36a4b9b216c4c9fb18704f9c1ad8d01
+SHA256: 19f8ecab08091ff064f530c8fc1241a097124ea2d8fcbc8071942abe473a209a
+Homepage: https://github.com/ubuntu/zsys
+Description: ZFS SYStem integration
+Task: ubuntu-live
+Description-md5: dabfaa2297d4001c7e247851fbcc2086
