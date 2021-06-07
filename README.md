@@ -1,11 +1,11 @@
 # 🚧 UNDER CONSTRUCTION 🚧
   
-# RAPT: Simple Toy apt
+# RAPT: Simple Toy apt written in Rust
 `rapt` is toy-version of `apt`(Debian Package Management System).  
-`rapt` doesn't have so much functionalities `apt` has for simplicity. `rapt` supports completely limited number of architecture or formats.
+`rapt` doesn't have much functionalities `apt` has for simplicity. `rapt` supports completely limited number of architectures or formats.
   
 ![rapt-update](img/rapt-update-short.gif)
 
 
 ## warnings
-- DO NOT use `rapt` to install packages on actuall system. It would collapse package dependency.
+- DO NOT use `rapt` to install packages on actuall system. It might collapse package dependency.
