@@ -1,6 +1,7 @@
 use simple_logger::SimpleLogger;
 
 mod cli;
+pub mod dpkg;
 pub mod fetcher;
 pub mod slist;
 pub mod source;
@@ -28,7 +29,7 @@ fn main() {
 
   println!("== rapt ==");
   SimpleLogger::new()
-    .with_level(log::LevelFilter::Warn)
+    .with_level(log::LevelFilter::Error)
     .init()
     .unwrap();
 

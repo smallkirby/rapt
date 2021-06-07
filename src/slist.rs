@@ -31,6 +31,15 @@ pub struct Source {
 }
 
 impl Source {
+  pub fn to_filename(&self) -> String {
+    format!(
+      "{}_dists_{}-{}",
+      self.uri.replace("/", "_"),
+      self.dists,
+      self.component
+    )
+  }
+
   pub fn info(&self) -> String {
     let proto = match self.protocol {
       Protocol::HTTP => "http",

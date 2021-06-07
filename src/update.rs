@@ -1,9 +1,12 @@
+use crate::dpkg;
 use crate::fetcher;
 use crate::slist;
 use crate::source;
 
 pub fn do_update() {
   log::trace!("do_update()");
+
+  let mut fetched_amount: u64 = 0;
   let mut package_items = vec![];
 
   // read sources.list
@@ -15,6 +18,7 @@ pub fn do_update() {
     }
   };
 
+  let start_time = std::time::SystemTime::now();
   // fetch index files and get package items.
   for (ix, source) in sources.iter().enumerate() {
     println!("Get:{} {}", ix, source.info());
@@ -25,6 +29,14 @@ pub fn do_update() {
         return;
       }
     };
+    match source::write_cache_raw(&raw_index, &source) {
+      Ok(()) => {}
+      Err(msg) => {
+        println!("{}", msg);
+        return;
+      }
+    }
+    fetched_amount += raw_index.len() as u64;
     println!("Hit:{} {} [{} B]", ix, source.info(), raw_index.len());
     match source::SourcePackage::from_row(&raw_index) {
       Ok(mut _items) => {
@@ -37,6 +49,37 @@ pub fn do_update() {
       }
     }
   }
+  let total_time = start_time.elapsed().unwrap().as_secs();
+  let fetched_amount_kb: u64 = (fetched_amount / 1024).into();
+  println!(
+    "Fetched {} kB in {}s ({} kB/s)",
+    fetched_amount_kb,
+    total_time,
+    fetched_amount_kb / total_time
+  );
 
-  let resolved_items = source::resolve_duplication(&package_items);
+  print!("Reading package lists... ");
+  let resolved_items = match source::resolve_duplication(&package_items) {
+    Ok(_resolved_items) => _resolved_items,
+    Err(msg) => {
+      println!("\n{}", msg);
+      return;
+    }
+  };
+  println!("DONE");
+
+  print!("Reading state information... ");
+  let upgradable_items = match dpkg::check_upgradable(&resolved_items) {
+    Ok(_upgradable_items) => _upgradable_items,
+    Err(msg) => {
+      println!("\n{}", msg);
+      return;
+    }
+  };
+  println!("DONE");
+  if upgradable_items.len() != 0 {
+    println!("{} packages are upgradable.", upgradable_items.len());
+  } else {
+    println!("All packages are up to date.");
+  }
 }

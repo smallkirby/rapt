@@ -1,5 +1,10 @@
+use std::fs;
+use std::io::{Error, Write};
+use std::path::Path;
 use std::{cmp::Ordering, collections::HashMap};
 use version_compare::{CompOp, Version, VersionCompare};
+
+use crate::slist;
 
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct SourcePackage {
@@ -22,6 +27,7 @@ pub struct SourcePackage {
   pub suggests: Vec<String>,
   pub filename: String,
   pub description: String,
+  pub conffiles: Vec<String>,
 }
 
 impl SourcePackage {
@@ -30,11 +36,13 @@ impl SourcePackage {
     let mut item = SourcePackage::default();
     let lines = file.split("\n").collect::<Vec<_>>();
     let mut cont_description = false;
+    let mut cont_conffiles = false;
     let mut tmp_description = String::new();
 
     for (ix, line) in lines.iter().enumerate() {
       if cont_description {
         if ix < lines.len() - 1
+          && lines.iter().nth(ix + 1).unwrap().len() >= 1
           && lines
             .iter()
             .nth(ix + 1)
@@ -45,13 +53,29 @@ impl SourcePackage {
             .unwrap()
             == ' '
         {
-          cont_description = true;
-          tmp_description.push_str(&format!("\n{}", &line[1..]));
+          // multi-line continues
+          if cont_description {
+            cont_description = true;
+            tmp_description.push_str(&format!("\n{}", &line[1..]));
+          } else if cont_conffiles {
+            cont_conffiles = true;
+            item.conffiles.push(format!("\n{}", &line[1..]));
+          } else {
+            panic!("unknown error while processing multi-line.");
+          }
         } else {
-          cont_description = false;
-          tmp_description.push_str(&format!("\n{}", &line[1..]));
-          item.description = tmp_description;
-          tmp_description = String::new();
+          // multi-line ends here
+          if cont_description {
+            cont_description = false;
+            tmp_description.push_str(&format!("\n{}", &line[1..]));
+            item.description = tmp_description;
+            tmp_description = String::new();
+          } else if cont_conffiles {
+            cont_conffiles = false;
+            item.conffiles.push(format!("\n{}", &line[1..]));
+          } else {
+            panic!("unknown error while processing multi-line.");
+          }
         }
         continue;
       }
@@ -170,6 +194,7 @@ impl SourcePackage {
         }
         "Description" => {
           if ix < lines.len() - 1
+            && lines.iter().nth(ix + 1).unwrap().len() >= 1
             && lines
               .iter()
               .nth(ix + 1)
@@ -199,6 +224,30 @@ impl SourcePackage {
             tmp_description = String::new();
           }
         }
+        "Conffiles" => {
+          if ix < lines.len() - 1
+            && lines.iter().nth(ix + 1).unwrap().len() >= 1
+            && lines
+              .iter()
+              .nth(ix + 1)
+              .unwrap()
+              .chars()
+              .into_iter()
+              .nth(0)
+              .unwrap()
+              == ' '
+          {
+            cont_conffiles = true;
+          } else {
+            cont_conffiles = false;
+          }
+          item.conffiles.push(
+            parts
+              .map(|s| String::from(*s))
+              .collect::<Vec<_>>()
+              .join(" "),
+          );
+        }
         _ => {
           //log::debug!(
           //  "{}: ignoring unknown package field: {}",
@@ -225,6 +274,17 @@ pub enum Arch {
   UNKNOWN,
 }
 
+impl std::fmt::Display for Arch {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::ALL => write!(f, "all"),
+      Self::ANY => write!(f, "any"),
+      Self::AMD64 => write!(f, "amd64"),
+      Self::UNKNOWN => write!(f, "unknown"),
+    }
+  }
+}
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Priority {
   REQUIRED,
@@ -233,6 +293,19 @@ pub enum Priority {
   OPTIONAL,
   EXTRA,
   UNKNOWN,
+}
+
+impl std::fmt::Display for Priority {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::REQUIRED => write!(f, "required"),
+      Self::IMPORTANT => write!(f, "important"),
+      Self::STANDARD => write!(f, "standard"),
+      Self::OPTIONAL => write!(f, "optional"),
+      Self::EXTRA => write!(f, "extra"),
+      Self::UNKNOWN => write!(f, "unknown"),
+    }
+  }
 }
 
 impl PartialOrd for Priority {
@@ -407,6 +480,47 @@ pub fn resolve_duplication(sources: &Vec<SourcePackage>) -> Result<Vec<SourcePac
   }
 
   Ok(resolved)
+}
+
+// XXX not needed??
+pub fn write_cache(items: &Vec<SourcePackage>, filename: &str) -> Result<(), String> {
+  unimplemented!();
+
+  if !Path::new("lists").exists() {
+    return Err("cache directory 'lists' doesn't exist. aborting...".to_string());
+  };
+  if Path::new(&format!("lists/{}", filename)).exists() {
+    // clean the file for simplicity
+    fs::remove_file(format!("lists/{}", filename)).unwrap();
+  };
+
+  let mut out = fs::File::create(format!("lists/{}", filename)).unwrap();
+  for item in items {
+    write!(out, "Package: {}\n", item.package).unwrap();
+    write!(out, "Architecture: {}\n", item.arch.iter().nth(0).unwrap()).unwrap();
+    write!(out, "Version: {}\n", item.version).unwrap();
+    write!(out, "Priority: {}\n", item.priority).unwrap();
+    write!(out, "\n").unwrap();
+  }
+
+  Err("".to_string())
+}
+
+pub fn write_cache_raw(raw_index: &str, source: &slist::Source) -> Result<(), String> {
+  let filename = source.to_filename();
+  if !Path::new("lists").exists() {
+    return Err("cache directory 'lists' doesn't exist. aborting...".to_string());
+  };
+  if Path::new(&format!("lists/{}", filename)).exists() {
+    // clean the file for simplicity
+    fs::remove_file(format!("lists/{}", filename)).unwrap();
+  };
+
+  log::info!("creating cache file: {}", format!("lists/{}", filename));
+  let mut out = fs::File::create(format!("lists/{}", filename)).unwrap();
+  write!(out, "{}", raw_index).unwrap();
+
+  Ok(())
 }
 
 #[cfg(test)]
