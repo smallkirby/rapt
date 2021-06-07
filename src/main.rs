@@ -14,6 +14,7 @@ pub mod update;
 pub struct Opts {
   pub command: Command,
   pub installed: bool,
+  pub upgradabe: bool,
   pub package: String,
 }
 
@@ -46,7 +47,7 @@ fn main() {
       update::do_update();
     }
     Command::LIST => {
-      list::do_list(&opts.package, opts.installed);
+      list::do_list(&opts.package, opts.installed, opts.upgradabe);
     }
     Command::UNKNOWN => {
       println!("Unknown subcommand");
@@ -63,9 +64,15 @@ pub fn parse_opts(opts: &mut Opts) {
   } else if let Some(ref matches) = matches.subcommand_matches("list") {
     log::trace!("subcommand: list");
     opts.command = Command::LIST;
-    opts.package = matches.value_of("package").unwrap().to_string();
+    opts.package = match matches.value_of("package") {
+      Some(_package) => _package.to_string(),
+      None => "*".to_string(),
+    };
     if matches.is_present("installed") {
       opts.installed = true;
+    }
+    if matches.is_present("upgradable") {
+      opts.upgradabe = true;
     }
     log::trace!("option: installed: {:?}", opts.installed);
     log::trace!("package: {}", opts.package);

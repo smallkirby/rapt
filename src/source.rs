@@ -4,8 +4,6 @@ use std::path::Path;
 use std::{cmp::Ordering, collections::HashMap};
 use version_compare::{CompOp, Version, VersionCompare};
 
-use crate::slist;
-
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct SourcePackage {
   pub package: String,

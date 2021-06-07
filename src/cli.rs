@@ -1,4 +1,4 @@
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg, ArgGroup, SubCommand};
 
 pub fn build_cli() -> App<'static, 'static> {
   App::new("rapt")
@@ -14,9 +14,11 @@ pub fn build_cli() -> App<'static, 'static> {
             .long("installed"),
         )
         .arg(
-          Arg::with_name("package")
-            .help("target package to search for")
-            .required(true),
-        ),
+          Arg::with_name("upgradable")
+            .help("show only upgradable packages.")
+            .long("upgradable"),
+        )
+        .group(ArgGroup::with_name("list-option").args(&["installed", "upgradable"]))
+        .arg(Arg::with_name("package").help("target package to search for")),
     ])
 }

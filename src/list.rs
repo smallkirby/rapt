@@ -4,7 +4,7 @@ use crate::source::SourcePackage;
 use colored::*;
 use glob::Pattern;
 
-pub fn do_list(package: &str, installed: bool) {
+pub fn do_list(package: &str, installed: bool, upgradable: bool) {
   if installed {
     let installed_items = match dpkg::read_dpkg_state() {
       Ok(_installed_items) => _installed_items,
@@ -23,6 +23,16 @@ pub fn do_list(package: &str, installed: bool) {
     };
     let found_items = filter_package_with_name(&package_glob, &installed_items);
     list_packages(&found_items);
+  } else if upgradable {
+    let cached_items = cache::get_cached_items();
+    let upgradable_items = match dpkg::check_upgradable(&cached_items) {
+      Ok(_upgradable_items) => _upgradable_items,
+      Err(msg) => {
+        println!("{}", msg);
+        return;
+      }
+    };
+    list_packages(&upgradable_items);
   } else {
     let package_glob = match Pattern::new(package) {
       Ok(_package_glob) => _package_glob,
