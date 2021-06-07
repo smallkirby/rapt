@@ -31,6 +31,14 @@ pub struct Source {
 }
 
 impl Source {
+  pub fn info(&self) -> String {
+    let proto = match self.protocol {
+      Protocol::HTTP => "http",
+      _ => unimplemented!(),
+    };
+    format!("{}://{} {} {}", proto, self.uri, self.dists, self.component)
+  }
+
   pub fn toIndexUri(&self) -> String {
     let mut iuri = String::new();
     match self.protocol {

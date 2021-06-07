@@ -28,7 +28,7 @@ fn main() {
 
   println!("== rapt ==");
   SimpleLogger::new()
-    .with_level(log::LevelFilter::Trace)
+    .with_level(log::LevelFilter::Warn)
     .init()
     .unwrap();
 
