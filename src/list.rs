@@ -41,7 +41,7 @@ pub fn do_list(package: &str, installed: bool, upgradable: bool) {
         return;
       }
     };
-    let found_items = cache::search_cache_with_name(&package_glob);
+    let found_items = cache::search_cache_with_name_glob(&package_glob);
     list_packages(&found_items);
   }
 }
@@ -60,7 +60,7 @@ pub fn filter_package_with_name(glob: &Pattern, items: &Vec<SourcePackage>) -> V
 pub fn list_packages(items: &Vec<SourcePackage>) {
   for item in items {
     // XXX should show distro/arch, but dpkg/status doesn't have these info.
-    // maybe search apt/lists/** for them.
+    // maybe, should search apt/lists/** for them.
     println!(
       "{}/{} {} {}",
       item.package.green().bold(),

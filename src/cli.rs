@@ -19,6 +19,10 @@ pub fn build_cli() -> App<'static, 'static> {
             .long("upgradable"),
         )
         .group(ArgGroup::with_name("list-option").args(&["installed", "upgradable"]))
-        .arg(Arg::with_name("package").help("target package to search for")),
+        .arg(Arg::with_name("package").help("target package glob term to search for")),
+      SubCommand::with_name("search")
+        .about("search package database for specific term in package name or its description, and list packages.")
+        .arg(Arg::with_name("package").help("target package regex to search for").required(true))
+        .arg(Arg::with_name("full-text").help("show full description of packages.").short("f").long("full-text")),
     ])
 }

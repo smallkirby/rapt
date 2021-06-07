@@ -6,6 +6,7 @@ mod cli;
 pub mod dpkg;
 pub mod fetcher;
 pub mod list;
+pub mod search;
 pub mod slist;
 pub mod source;
 pub mod update;
@@ -15,6 +16,7 @@ pub struct Opts {
   pub command: Command,
   pub installed: bool,
   pub upgradabe: bool,
+  pub full_description: bool,
   pub package: String,
 }
 
@@ -22,6 +24,7 @@ pub struct Opts {
 pub enum Command {
   UPDATE,
   LIST,
+  SEARCH,
   UNKNOWN,
 }
 
@@ -49,6 +52,9 @@ fn main() {
     Command::LIST => {
       list::do_list(&opts.package, opts.installed, opts.upgradabe);
     }
+    Command::SEARCH => {
+      search::do_search(&opts.package, opts.full_description);
+    }
     Command::UNKNOWN => {
       println!("Unknown subcommand");
     }
@@ -75,6 +81,14 @@ pub fn parse_opts(opts: &mut Opts) {
       opts.upgradabe = true;
     }
     log::trace!("option: installed: {:?}", opts.installed);
+    log::trace!("package: {}", opts.package);
+  } else if let Some(ref matches) = matches.subcommand_matches("search") {
+    log::trace!("subcommand: search");
+    opts.command = Command::SEARCH;
+    opts.package = matches.value_of("package").unwrap().to_string();
+    if matches.is_present("full-text") {
+      opts.full_description = true;
+    }
     log::trace!("package: {}", opts.package);
   } else {
     log::trace!("not implemented subcommand");

@@ -6,12 +6,37 @@ use std::fs;
 use std::io::{Error, Write};
 use std::path::Path;
 
-pub fn search_cache_with_name(glob: &Pattern) -> Vec<SourcePackage> {
+pub fn search_cache_with_name_glob(glob: &Pattern) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
   let cached_items = get_cached_items();
   for item in cached_items {
     if glob.matches(&item.package) {
       ret_items.push(item.clone());
+    }
+  }
+
+  ret_items
+}
+
+pub fn search_cache_with_name_description_regex(
+  reg: &regex::Regex,
+  case_sensitive: bool,
+) -> Vec<SourcePackage> {
+  let mut ret_items = vec![];
+  let cached_items = get_cached_items();
+  for item in cached_items {
+    if case_sensitive {
+      if reg.is_match(&item.package) {
+        ret_items.push(item.clone());
+      } else if reg.is_match(&item.description) {
+        ret_items.push(item.clone());
+      }
+    } else {
+      if reg.is_match(&item.package.to_lowercase()) {
+        ret_items.push(item.clone());
+      } else if reg.is_match(&item.description.to_lowercase()) {
+        ret_items.push(item.clone());
+      }
     }
   }
 
