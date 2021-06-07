@@ -6,6 +6,23 @@
   
 ![rapt-update](img/rapt1.png)
 
+## Progress
+| Status | Functionality |
+| ------------- | ------------- |
+| 🌤 | `rapt update` |
+| 🌤 | `rapt show` |
+| 🌤 | `rapt search` |
+| 🌤 | `rapt list` |
+| ⛈ | `rapt upgrade` |
+| ⛈ | `rapt install` |
+  
+### legend
+- ☀️: completed
+- 🌤: almost done, still needs more impls 
+- ☁️: work in progress
+- ⛈: totally untouched
+
+  
 
 ## Warnings
 - DO NOT use `rapt` to install packages on actuall system. It might collapse package dependency.
