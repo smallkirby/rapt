@@ -41,7 +41,7 @@ pub fn do_list(package: &str, installed: bool, upgradable: bool) {
         return;
       }
     };
-    let found_items = cache::search_cache_with_name_glob(&package_glob);
+    let found_items = cache::search_cache_with_name_glob(&package_glob, false);
     list_packages(&found_items);
   }
 }

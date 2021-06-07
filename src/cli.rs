@@ -24,5 +24,8 @@ pub fn build_cli() -> App<'static, 'static> {
         .about("search package database for specific term in package name or its description, and list packages.")
         .arg(Arg::with_name("package").help("target package regex to search for").required(true))
         .arg(Arg::with_name("full-text").help("show full description of packages.").short("f").long("full-text")),
+      SubCommand::with_name("show")
+        .about("search package database for specific glob term in package name and show detailed information.")
+        .arg(Arg::with_name("package").help("target package glob to search for").required(true))
     ])
 }

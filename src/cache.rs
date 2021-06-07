@@ -6,12 +6,18 @@ use std::fs;
 use std::io::{Error, Write};
 use std::path::Path;
 
-pub fn search_cache_with_name_glob(glob: &Pattern) -> Vec<SourcePackage> {
+pub fn search_cache_with_name_glob(glob: &Pattern, case_sensitive: bool) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
   let cached_items = get_cached_items();
   for item in cached_items {
-    if glob.matches(&item.package) {
-      ret_items.push(item.clone());
+    if case_sensitive {
+      if glob.matches(&item.package) {
+        ret_items.push(item.clone());
+      }
+    } else {
+      if glob.matches(&item.package.to_lowercase()) {
+        ret_items.push(item.clone());
+      }
     }
   }
 

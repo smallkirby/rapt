@@ -1,5 +1,4 @@
 use crate::cache;
-use crate::dpkg;
 use crate::source::SourcePackage;
 use colored::*;
 use regex;

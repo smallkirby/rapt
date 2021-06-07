@@ -2,6 +2,7 @@ use std::fs;
 use std::io::{Error, Write};
 use std::path::Path;
 use std::{cmp::Ordering, collections::HashMap};
+use strum_macros::Display;
 use version_compare::{CompOp, Version, VersionCompare};
 
 #[derive(Debug, PartialEq, Default, Clone)]
@@ -16,6 +17,7 @@ pub struct SourcePackage {
   pub original_maintainer: String,
   pub uploaders: Vec<String>,
   pub standard_version: String,
+  pub depends: HashMap<String, Option<String>>,
   pub pre_depends: HashMap<String, Option<String>>,
   pub testsuite: String,
   pub homepage: String,
@@ -26,6 +28,8 @@ pub struct SourcePackage {
   pub filename: String,
   pub description: String,
   pub conffiles: Vec<String>,
+  pub origin: String,
+  pub bugs: String,
 }
 
 impl SourcePackage {
@@ -168,6 +172,16 @@ impl SourcePackage {
             };
           }
         }
+        "Depends" => {
+          let _depends = parts.map(|s| String::from(*s)).collect::<Vec<_>>().join("");
+          let depends = _depends.split(",").collect::<Vec<_>>();
+          for dep in depends {
+            match parse_depends(dep) {
+              Ok((pkg, version)) => item.depends.insert(pkg, version),
+              Err(msg) => return Err(msg),
+            };
+          }
+        }
         "Suggests" => {
           let _sug = parts.map(|s| String::from(*s)).collect::<Vec<_>>().join("");
           let sug = _sug.split(",").map(|s| s.trim()).collect::<Vec<_>>();
@@ -188,6 +202,12 @@ impl SourcePackage {
           item.chksum_md5 = parts
             .nth(0)
             .ok_or(format!("invalid 'MD5sum' format: {}", line))?
+            .to_string();
+        }
+        "Homepage" => {
+          item.homepage = parts
+            .nth(0)
+            .ok_or(format!("invalid 'Homepage' format: {}", line))?
             .to_string();
         }
         "Description" => {
@@ -246,6 +266,18 @@ impl SourcePackage {
               .join(" "),
           );
         }
+        "Origin" => {
+          item.origin = parts
+            .nth(0)
+            .ok_or(format!("invalid 'Origin' format: {}", line))?
+            .to_string();
+        }
+        "Bugs" => {
+          item.bugs = parts
+            .nth(0)
+            .ok_or(format!("invalid 'Bugs' format: {}", line))?
+            .to_string();
+        }
         _ => {
           //log::debug!(
           //  "{}: ignoring unknown package field: {}",
@@ -283,7 +315,7 @@ impl std::fmt::Display for Arch {
   }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Display)]
 pub enum Priority {
   REQUIRED,
   IMPORTANT,
@@ -291,19 +323,6 @@ pub enum Priority {
   OPTIONAL,
   EXTRA,
   UNKNOWN,
-}
-
-impl std::fmt::Display for Priority {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Self::REQUIRED => write!(f, "required"),
-      Self::IMPORTANT => write!(f, "important"),
-      Self::STANDARD => write!(f, "standard"),
-      Self::OPTIONAL => write!(f, "optional"),
-      Self::EXTRA => write!(f, "extra"),
-      Self::UNKNOWN => write!(f, "unknown"),
-    }
-  }
 }
 
 impl PartialOrd for Priority {
@@ -357,7 +376,7 @@ impl Default for Priority {
   }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Display)]
 pub enum Section {
   ADMIN,
   COMM,
@@ -410,15 +429,18 @@ impl Default for Section {
   }
 }
 
+// XXX should hold version info with '>', '=', '>=', etc...
 pub fn parse_depends(_dep: &str) -> Result<(String, Option<String>), String> {
-  let dep: String = _dep.chars().filter(|c| !c.is_whitespace()).collect();
-  if dep.contains("(") {
+  let dep: String = _dep.trim().to_string();
+  if dep.contains(" ") {
     // XXX assumes version format is like: (>=2.32)
-    let pkg = &dep[0..dep.find("(").unwrap()];
-    let version = &dep[dep.find("(").unwrap() + 1 + 2..dep.len() - 1];
-    Ok((pkg.to_string(), Some(version.to_string())))
+    // 0: package, 1: ( and {>=<}, 2: version and )
+    let parts = dep.split(" ").collect::<Vec<_>>();
+    let pkg = parts[0].trim();
+    let version = &parts[2][..parts[2].len() - 1];
+    Ok((pkg.trim().to_string(), Some(version.trim().to_string())))
   } else {
-    Ok((dep, None))
+    return Ok((dep.trim().to_string(), None));
   }
 }
 

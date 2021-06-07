@@ -7,6 +7,7 @@ pub mod dpkg;
 pub mod fetcher;
 pub mod list;
 pub mod search;
+pub mod show;
 pub mod slist;
 pub mod source;
 pub mod update;
@@ -25,6 +26,7 @@ pub enum Command {
   UPDATE,
   LIST,
   SEARCH,
+  SHOW,
   UNKNOWN,
 }
 
@@ -54,6 +56,9 @@ fn main() {
     }
     Command::SEARCH => {
       search::do_search(&opts.package, opts.full_description);
+    }
+    Command::SHOW => {
+      show::do_show(&opts.package);
     }
     Command::UNKNOWN => {
       println!("Unknown subcommand");
@@ -89,6 +94,11 @@ pub fn parse_opts(opts: &mut Opts) {
     if matches.is_present("full-text") {
       opts.full_description = true;
     }
+    log::trace!("package: {}", opts.package);
+  } else if let Some(ref matches) = matches.subcommand_matches("show") {
+    log::trace!("subcommand: show");
+    opts.command = Command::SHOW;
+    opts.package = matches.value_of("package").unwrap().to_string();
     log::trace!("package: {}", opts.package);
   } else {
     log::trace!("not implemented subcommand");
