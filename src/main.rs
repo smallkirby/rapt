@@ -1,6 +1,7 @@
 use colored::*;
 use simple_logger::SimpleLogger;
 
+pub mod cache;
 mod cli;
 pub mod dpkg;
 pub mod fetcher;

@@ -1,3 +1,4 @@
+use crate::cache;
 use crate::dpkg;
 use crate::source::SourcePackage;
 use colored::*;
@@ -23,7 +24,15 @@ pub fn do_list(package: &str, installed: bool) {
     let found_items = filter_package_with_name(&package_glob, &installed_items);
     list_packages(&found_items);
   } else {
-    unimplemented!();
+    let package_glob = match Pattern::new(package) {
+      Ok(_package_glob) => _package_glob,
+      Err(_) => {
+        println!("invalid glob pattern: {}", package);
+        return;
+      }
+    };
+    let found_items = cache::search_cache_with_name(&package_glob);
+    list_packages(&found_items);
   }
 }
 

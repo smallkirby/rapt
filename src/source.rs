@@ -506,23 +506,6 @@ pub fn write_cache(items: &Vec<SourcePackage>, filename: &str) -> Result<(), Str
   Err("".to_string())
 }
 
-pub fn write_cache_raw(raw_index: &str, source: &slist::Source) -> Result<(), String> {
-  let filename = source.to_filename();
-  if !Path::new("lists").exists() {
-    return Err("cache directory 'lists' doesn't exist. aborting...".to_string());
-  };
-  if Path::new(&format!("lists/{}", filename)).exists() {
-    // clean the file for simplicity
-    fs::remove_file(format!("lists/{}", filename)).unwrap();
-  };
-
-  log::info!("creating cache file: {}", format!("lists/{}", filename));
-  let mut out = fs::File::create(format!("lists/{}", filename)).unwrap();
-  write!(out, "{}", raw_index).unwrap();
-
-  Ok(())
-}
-
 #[cfg(test)]
 pub mod test {
   #[test]

@@ -1,5 +1,6 @@
 use colored::*;
 
+use crate::cache;
 use crate::dpkg;
 use crate::fetcher;
 use crate::slist;
@@ -31,7 +32,7 @@ pub fn do_update() {
         return;
       }
     };
-    match source::write_cache_raw(&raw_index, &source) {
+    match cache::write_cache_raw(&raw_index, &source) {
       Ok(()) => {}
       Err(msg) => {
         println!("{}", msg);
