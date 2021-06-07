@@ -1,5 +1,6 @@
 use crate::dpkg;
 use crate::source::SourcePackage;
+use colored::*;
 use glob::Pattern;
 
 pub fn do_list(package: &str, installed: bool) {
@@ -41,6 +42,12 @@ pub fn list_packages(items: &Vec<SourcePackage>) {
   for item in items {
     // XXX should show distro/arch, but dpkg/status doesn't have these info.
     // maybe search apt/lists/** for them.
-    println!("{}/{} {} {}", item.package, "?", item.version, "?");
+    println!(
+      "{}/{} {} {}",
+      item.package.green().bold(),
+      "?",
+      item.version,
+      "?"
+    );
   }
 }

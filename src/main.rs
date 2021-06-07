@@ -1,3 +1,4 @@
+use colored::*;
 use simple_logger::SimpleLogger;
 
 mod cli;
@@ -31,7 +32,7 @@ impl Default for Command {
 fn main() {
   let mut opts = Opts::default();
 
-  println!("== rapt ==");
+  println!(" {}", "======== RAPT =======".blue().bold());
   SimpleLogger::new()
     .with_level(log::LevelFilter::Error)
     .init()

@@ -1,3 +1,5 @@
+use colored::*;
+
 use crate::dpkg;
 use crate::fetcher;
 use crate::slist;
@@ -37,7 +39,13 @@ pub fn do_update() {
       }
     }
     fetched_amount += raw_index.len() as u64;
-    println!("Hit:{} {} [{} B]", ix, source.info(), raw_index.len());
+    println!(
+      "{}:{} {} [{} B]",
+      "Hit".blue(),
+      ix,
+      source.info(),
+      raw_index.len()
+    );
     match source::SourcePackage::from_row(&raw_index) {
       Ok(mut _items) => {
         log::info!("fetched {} packages.", _items.len());
@@ -78,8 +86,11 @@ pub fn do_update() {
   };
   println!("DONE");
   if upgradable_items.len() != 0 {
-    println!("{} packages are upgradable.", upgradable_items.len());
+    println!(
+      "{} packages are upgradable.",
+      upgradable_items.len().to_string().red().bold()
+    );
   } else {
-    println!("All packages are up to date.");
+    println!("{}", "All packages are up to date.".green().bold());
   }
 }
