@@ -3,6 +3,7 @@ use simple_logger::SimpleLogger;
 mod cli;
 pub mod dpkg;
 pub mod fetcher;
+pub mod list;
 pub mod slist;
 pub mod source;
 pub mod update;
@@ -10,11 +11,14 @@ pub mod update;
 #[derive(Debug, PartialEq, Default)]
 pub struct Opts {
   pub command: Command,
+  pub installed: bool,
+  pub package: String,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Command {
   UPDATE,
+  LIST,
   UNKNOWN,
 }
 
@@ -39,6 +43,9 @@ fn main() {
     Command::UPDATE => {
       update::do_update();
     }
+    Command::LIST => {
+      list::do_list(&opts.package, opts.installed);
+    }
     Command::UNKNOWN => {
       println!("Unknown subcommand");
     }
@@ -51,6 +58,15 @@ pub fn parse_opts(opts: &mut Opts) {
   if let Some(ref matches) = matches.subcommand_matches("update") {
     log::trace!("subcommand: update");
     opts.command = Command::UPDATE;
+  } else if let Some(ref matches) = matches.subcommand_matches("list") {
+    log::trace!("subcommand: list");
+    opts.command = Command::LIST;
+    opts.package = matches.value_of("package").unwrap().to_string();
+    if matches.is_present("installed") {
+      opts.installed = true;
+    }
+    log::trace!("option: installed: {:?}", opts.installed);
+    log::trace!("package: {}", opts.package);
   } else {
     log::trace!("not implemented subcommand");
     opts.command = Command::UNKNOWN;
