@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
+use version_compare::{CompOp, Version, VersionCompare};
 
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct SourcePackage {
@@ -226,12 +227,57 @@ pub enum Arch {
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Priority {
-  EXTRA,
-  IMPORTANT,
-  OPTIONAL,
   REQUIRED,
+  IMPORTANT,
   STANDARD,
+  OPTIONAL,
+  EXTRA,
   UNKNOWN,
+}
+
+impl PartialOrd for Priority {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    use Ordering::*;
+    use Priority::*;
+    match (self, other) {
+      (REQUIRED, REQUIRED) => Some(Equal),
+      (REQUIRED, IMPORTANT) => Some(Greater),
+      (REQUIRED, STANDARD) => Some(Greater),
+      (REQUIRED, OPTIONAL) => Some(Greater),
+      (REQUIRED, EXTRA) => Some(Greater),
+      (REQUIRED, UNKNOWN) => Some(Greater),
+      (IMPORTANT, REQUIRED) => Some(Less),
+      (IMPORTANT, IMPORTANT) => Some(Equal),
+      (IMPORTANT, STANDARD) => Some(Greater),
+      (IMPORTANT, OPTIONAL) => Some(Greater),
+      (IMPORTANT, EXTRA) => Some(Greater),
+      (IMPORTANT, UNKNOWN) => Some(Greater),
+      (STANDARD, REQUIRED) => Some(Less),
+      (STANDARD, IMPORTANT) => Some(Less),
+      (STANDARD, STANDARD) => Some(Equal),
+      (STANDARD, OPTIONAL) => Some(Greater),
+      (STANDARD, EXTRA) => Some(Greater),
+      (STANDARD, UNKNOWN) => Some(Greater),
+      (OPTIONAL, REQUIRED) => Some(Less),
+      (OPTIONAL, IMPORTANT) => Some(Less),
+      (OPTIONAL, STANDARD) => Some(Less),
+      (OPTIONAL, OPTIONAL) => Some(Equal),
+      (OPTIONAL, EXTRA) => Some(Greater),
+      (OPTIONAL, UNKNOWN) => Some(Greater),
+      (EXTRA, REQUIRED) => Some(Less),
+      (EXTRA, IMPORTANT) => Some(Less),
+      (EXTRA, STANDARD) => Some(Less),
+      (EXTRA, OPTIONAL) => Some(Less),
+      (EXTRA, EXTRA) => Some(Equal),
+      (EXTRA, UNKNOWN) => Some(Greater),
+      (UNKNOWN, REQUIRED) => Some(Less),
+      (UNKNOWN, IMPORTANT) => Some(Less),
+      (UNKNOWN, STANDARD) => Some(Less),
+      (UNKNOWN, OPTIONAL) => Some(Less),
+      (UNKNOWN, EXTRA) => Some(Less),
+      (UNKNOWN, UNKNOWN) => Some(Equal),
+    }
+  }
 }
 
 impl Default for Priority {
@@ -305,6 +351,64 @@ pub fn parse_depends(_dep: &str) -> Result<(String, Option<String>), String> {
   }
 }
 
+pub fn resolve_duplication(sources: &Vec<SourcePackage>) -> Result<Vec<SourcePackage>, String> {
+  let mut resolved: Vec<SourcePackage> = vec![];
+  for source in sources {
+    let dups_num = resolved
+      .iter()
+      .filter(|&item| item.package == source.package)
+      .collect::<Vec<_>>()
+      .len();
+    if dups_num == 0 {
+      resolved.push(source.clone());
+    } else if dups_num != 1 {
+      return Err("something went wrong while resolving duplication.".to_string());
+    } else {
+      let dup = resolved
+        .iter()
+        .find(|item| item.package == source.package)
+        .unwrap();
+      // check version and priority only
+      if source.priority > dup.priority {
+        let ix = resolved
+          .iter()
+          .position(|x| x.package == dup.package)
+          .unwrap();
+        resolved.push(source.clone());
+        resolved.remove(ix);
+      } else if source.priority < dup.priority {
+        continue;
+      } else {
+        let version0 = Version::from(&dup.version);
+        let version1 = Version::from(&source.version);
+        match (version0, version1) {
+          (None, _) => continue,
+          (_, None) => {
+            let ix = resolved
+              .iter()
+              .position(|x| x.package == dup.package)
+              .unwrap();
+            resolved.push(source.clone());
+            resolved.remove(ix);
+          }
+          (Some(v0), Some(v1)) => {
+            if v0 < v1 {
+              let ix = resolved
+                .iter()
+                .position(|x| x.package == dup.package)
+                .unwrap();
+              resolved.push(source.clone());
+              resolved.remove(ix);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  Ok(resolved)
+}
+
 #[cfg(test)]
 pub mod test {
   #[test]
@@ -338,6 +442,19 @@ pub mod test {
       dpkg.description,
       "Debian package management system\nwaiwai second sentence.\nuouo fish life."
     );
+  }
+
+  #[test]
+  fn test_package_resolve_duplication() {
+    let sample = std::fs::read_to_string("test/sample-duplicated-index").unwrap();
+    let psources = super::SourcePackage::from_row(&sample).unwrap();
+    assert_eq!(psources.len(), 3);
+    let resolved = super::resolve_duplication(&psources).unwrap();
+    assert_eq!(resolved.len(), 1);
+    let dpkg = resolved.iter().nth(0).unwrap();
+    assert_eq!(dpkg.package, "dpkg");
+    assert_eq!(dpkg.priority, super::Priority::REQUIRED);
+    assert_eq!(dpkg.version, "1.20.7ubuntu3");
   }
 
   #[test]

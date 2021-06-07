@@ -1,0 +1,83 @@
+Package: dpkg
+Architecture: amd64
+Version: 1.19.7ubuntu3
+Multi-Arch: foreign
+Priority: required
+Essential: yes
+Section: admin
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Dpkg Developers <debian-dpkg@lists.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 6740
+Pre-Depends: libbz2-1.0, libc6 (>= 2.15), liblzma5 (>= 5.2.2), libselinux1 (>= 2.3), libzstd1 (>= 1.3.2), zlib1g (>= 1:1.1.4)
+Depends: tar (>= 1.28-1)
+Suggests: apt, debsig-verify
+Breaks: acidbase (<= 1.4.5-4), amule (<< 2.3.1+git1a369e47-3), beep (<< 1.3-4), im (<< 1:151-4), libapt-pkg5.0 (<< 1.7~b), libdpkg-perl (<< 1.18.11), lsb-base (<< 10.2019031300), netselect (<< 0.3.ds1-27), pconsole (<< 1.0-12), phpgacl (<< 3.3.7-7.3), pure-ftpd (<< 1.0.43-1), systemtap (<< 2.8-1), terminatorx (<< 4.0.1-1), xvt (<= 2.1-20.1)
+Filename: pool/main/d/dpkg/dpkg_1.19.7ubuntu3_amd64.deb
+Size: 1127856
+MD5sum: f595c79475d3c2ac808eaac389071c35
+SHA1: b9cb6b292865ec85bca1021085bc0e81e160e676
+SHA256: 76132be95c7199f902767fb329e0f33210ac5b5b1816746543bc75f795d9a37c
+Homepage: https://wiki.debian.org/Teams/Dpkg
+Description: Debian package management system
+ waiwai second sentence.
+ uouo fish life.
+Task: minimal
+Description-md5: 2f156c6a30cc39895ad3487111e8c190
+
+Package: dpkg
+Architecture: amd64
+Version: 1.19.7ubuntu3
+Multi-Arch: foreign
+Priority: optional
+Essential: yes
+Section: admin
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Dpkg Developers <debian-dpkg@lists.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 6740
+Pre-Depends: libbz2-1.0, libc6 (>= 2.15), liblzma5 (>= 5.2.2), libselinux1 (>= 2.3), libzstd1 (>= 1.3.2), zlib1g (>= 1:1.1.4)
+Depends: tar (>= 1.28-1)
+Suggests: apt, debsig-verify
+Breaks: acidbase (<= 1.4.5-4), amule (<< 2.3.1+git1a369e47-3), beep (<< 1.3-4), im (<< 1:151-4), libapt-pkg5.0 (<< 1.7~b), libdpkg-perl (<< 1.18.11), lsb-base (<< 10.2019031300), netselect (<< 0.3.ds1-27), pconsole (<< 1.0-12), phpgacl (<< 3.3.7-7.3), pure-ftpd (<< 1.0.43-1), systemtap (<< 2.8-1), terminatorx (<< 4.0.1-1), xvt (<= 2.1-20.1)
+Filename: pool/main/d/dpkg/dpkg_1.19.7ubuntu3_amd64.deb
+Size: 1127856
+MD5sum: f595c79475d3c2ac808eaac389071c35
+SHA1: b9cb6b292865ec85bca1021085bc0e81e160e676
+SHA256: 76132be95c7199f902767fb329e0f33210ac5b5b1816746543bc75f795d9a37c
+Homepage: https://wiki.debian.org/Teams/Dpkg
+Description: Debian package management system
+ waiwai second sentence.
+ uouo fish life.
+Task: minimal
+Description-md5: 2f156c6a30cc39895ad3487111e8c190
+
+Package: dpkg
+Architecture: amd64
+Version: 1.20.7ubuntu3
+Multi-Arch: foreign
+Priority: required
+Essential: yes
+Section: admin
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Dpkg Developers <debian-dpkg@lists.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 6740
+Pre-Depends: libbz2-1.0, libc6 (>= 2.15), liblzma5 (>= 5.2.2), libselinux1 (>= 2.3), libzstd1 (>= 1.3.2), zlib1g (>= 1:1.1.4)
+Depends: tar (>= 1.28-1)
+Suggests: apt, debsig-verify
+Breaks: acidbase (<= 1.4.5-4), amule (<< 2.3.1+git1a369e47-3), beep (<< 1.3-4), im (<< 1:151-4), libapt-pkg5.0 (<< 1.7~b), libdpkg-perl (<< 1.18.11), lsb-base (<< 10.2019031300), netselect (<< 0.3.ds1-27), pconsole (<< 1.0-12), phpgacl (<< 3.3.7-7.3), pure-ftpd (<< 1.0.43-1), systemtap (<< 2.8-1), terminatorx (<< 4.0.1-1), xvt (<= 2.1-20.1)
+Filename: pool/main/d/dpkg/dpkg_1.19.7ubuntu3_amd64.deb
+Size: 1127856
+MD5sum: f595c79475d3c2ac808eaac389071c35
+SHA1: b9cb6b292865ec85bca1021085bc0e81e160e676
+SHA256: 76132be95c7199f902767fb329e0f33210ac5b5b1816746543bc75f795d9a37c
+Homepage: https://wiki.debian.org/Teams/Dpkg
+Description: Debian package management system
+ waiwai second sentence.
+ uouo fish life.
+Task: minimal
+Description-md5: 2f156c6a30cc39895ad3487111e8c190
