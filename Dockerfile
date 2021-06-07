@@ -7,3 +7,4 @@ WORKDIR /home/user
 
 RUN git clone https://github.com/smallkirby/rapt.git
 RUN cd rapt && cargo build
+RUN cd rapt && mkdir lists
