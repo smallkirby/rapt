@@ -13,4 +13,4 @@ ENV PATH $PATH:$HOME/.cargo/bin:/usr/local/cargo/bin
 
 RUN git clone https://github.com/smallkirby/rapt.git
 #RUN source $HOME/.cargo/env && cd rapt && source $HOME/.bashrc && bash -c "cargo build"
-RUN cd rapt && mkdir lists
+RUN cd rapt && mkdir lists && mkdir tmp
