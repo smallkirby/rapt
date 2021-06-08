@@ -29,8 +29,16 @@ pub fn do_install(package: &str) {
       }
     }
   } else {
-    let target_package =
-      &cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true)[0];
+    let _target_package =
+      &cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true);
+    if _target_package.len() == 0 {
+      println!(
+        "Package {} is not in cache. \nDo 'rapt update' or add sources.list.",
+        package.green()
+      );
+      return;
+    }
+    let target_package = &_target_package[0];
     match dpkg::check_missing_or_old(
       &target_package.package,
       &Some(target_package.version.clone()),
