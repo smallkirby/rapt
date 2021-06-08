@@ -21,7 +21,7 @@ impl Default for Protocol {
   }
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct Source {
   stype: SourceType,
   protocol: Protocol,
