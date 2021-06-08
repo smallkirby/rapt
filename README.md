@@ -15,6 +15,8 @@
 | 🌤 | `rapt list` |
 | ⛈ | `rapt upgrade` |
 | ☁ | `rapt install` |
+| ⛈ | `rapt remove` |
+| ⛈ | `rapt purge` |
   
 ### legend
 - ☀️: completed
