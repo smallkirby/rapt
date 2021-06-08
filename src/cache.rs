@@ -6,6 +6,66 @@ use std::fs;
 use std::io::{Error, Write};
 use std::path::Path;
 
+pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
+  match glob::glob("lists/*") {
+    Ok(paths) => {
+      for entry in paths {
+        match entry {
+          Ok(path) => {
+            let raw_cache = match std::fs::read_to_string(&path) {
+              Ok(_raw_cache) => _raw_cache,
+              Err(msg) => {
+                println!("{}", msg);
+                return Err(());
+              }
+            };
+            match source::SourcePackage::from_row(&raw_cache) {
+              Ok(_items) => {
+                if _items
+                  .iter()
+                  .filter(|i| i.package == package.package)
+                  .collect::<Vec<_>>()
+                  .len()
+                  != 0
+                {
+                  let mut domain = String::new();
+                  let filename = String::from(path.file_name().unwrap().to_str().unwrap());
+                  let mut count = 0;
+                  for c in filename.chars() {
+                    if c == '_' {
+                      domain.push('/');
+                      count += 1;
+                    } else {
+                      domain.push(c);
+                    }
+                    if count == 2 {
+                      break;
+                    }
+                  }
+                  return Ok(domain);
+                }
+              }
+              Err(msg) => {
+                println!("{}", msg);
+                return Err(());
+              }
+            };
+          }
+          Err(msg) => {
+            println!("failed to open cache file.");
+            return Err(());
+          }
+        };
+      }
+    }
+    Err(_) => {
+      println!("invalid glob pattern.");
+      return Err(());
+    }
+  };
+  return Err(());
+}
+
 pub fn search_cache_with_names(names: &Vec<String>) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
   for name in names {

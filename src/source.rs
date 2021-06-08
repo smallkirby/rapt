@@ -1,3 +1,4 @@
+use crate::cache;
 use std::fs;
 use std::io::{Error, Write};
 use std::path::Path;
@@ -33,6 +34,20 @@ pub struct SourcePackage {
 }
 
 impl SourcePackage {
+  pub fn toPoolUri(&self) -> Result<String, ()> {
+    let mut puri = String::new();
+    puri.push_str("http");
+    puri.push_str("://");
+    puri.push_str("");
+    match cache::get_pool_domain(self) {
+      Ok(domain) => puri.push_str(&domain),
+      Err(()) => return Err(()),
+    };
+    puri.push_str(&self.filename);
+
+    Ok(puri)
+  }
+
   pub fn from_row(file: &str) -> Result<Vec<Self>, String> {
     let mut items = vec![];
     let mut item = SourcePackage::default();

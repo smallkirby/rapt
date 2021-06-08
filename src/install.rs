@@ -1,8 +1,10 @@
 use crate::cache;
 use crate::dpkg;
+use crate::fetcher;
 use crate::source::SourcePackage;
 use colored::control;
 use flate2::read::GzDecoder;
+use glob;
 use regex::Regex;
 use std::fs::File;
 use std::io;
@@ -75,7 +77,10 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   // read package info from control
   let control = std::fs::read_to_string("tmp/control").unwrap();
   let _packages = SourcePackage::from_row(&control).unwrap();
-  let package = _packages.iter().nth(0).unwrap();
+  let package = &cache::search_cache_with_name_glob(
+    &glob::Pattern::new(&_packages.iter().nth(0).unwrap().package).unwrap(),
+    true,
+  )[0];
   let missing_package_names = match dpkg::get_missing_or_old_dependencies_recursive(package) {
     Ok(_missing_packages) => _missing_packages,
     Err(msg) => return Err(msg),
@@ -116,9 +121,15 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     return Err("Abort.".to_string());
   }
 
-  // check permission
-  if users::get_current_uid() != 0 {
-    return Err("install needs root permission.".to_string());
+  //// check permission
+  //if users::get_current_uid() != 0 {
+  //  return Err("install needs root permission.".to_string());
+  //}
+
+  println!("{:?}", package);
+  match fetcher::fetch_deb(package) {
+    Ok(_) => {}
+    Err(_) => panic!(""),
   }
 
   Err("".to_string())
