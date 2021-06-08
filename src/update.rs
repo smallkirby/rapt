@@ -7,6 +7,7 @@ use crate::dpkg;
 use crate::fetcher;
 use crate::slist;
 use crate::source;
+use crate::source::SourcePackage;
 
 pub fn do_update() {
   log::trace!("do_update()");
@@ -24,60 +25,19 @@ pub fn do_update() {
 
   let start_time = std::time::SystemTime::now();
   // fetch index files and get package items.
-  let mut handles = vec![];
-  let (tx, rx) = mpsc::channel();
   println!("Fetching indexes... ");
-  for ix in 0..sources.len() {
-    let source = sources[ix].clone();
-    let tx = tx.clone();
-    let handle = thread::spawn(move || {
-      println!("Get:{} {}", ix, source.info());
-      let raw_index = match fetcher::fetchIndex(&source) {
-        Ok(_raw_index) => _raw_index,
-        Err(msg) => {
-          println!("{}", msg);
-          return;
-        }
-      };
-      match cache::write_cache_raw(&raw_index, &source) {
-        Ok(()) => {}
-        Err(msg) => {
-          println!("{}", msg);
-          return;
-        }
-      }
-      let fetched_size = raw_index.len() as u64;
-      //println!(
-      //  "{}:{} {} [{} B]",
-      //  "Hit".blue(),
-      //  ix,
-      //  source.info(),
-      //  raw_index.len()
-      //);
-      match source::SourcePackage::from_row(&raw_index) {
-        Ok(mut _items) => {
-          tx.send(Ok((fetched_size, _items))).unwrap();
-        }
-        Err(msg) => {
-          tx.send(Err(msg)).unwrap();
-        }
-      }
-    });
-    handles.push(handle);
-  }
   let mut fetched_amount = 0;
-  for handle in handles {
-    match rx.recv().unwrap() {
-      Ok((fetched_size, mut item)) => {
-        package_items.append(&mut item);
-        fetched_amount += fetched_size;
+  match fetche_indexes_thread(&sources) {
+    Ok((fetched_sizes, mut items)) => {
+      for s in fetched_sizes {
+        fetched_amount += s;
       }
-      Err(msg) => {
-        println!("{}", msg);
-        return;
-      }
+      package_items.append(&mut items);
     }
-    handle.join().unwrap();
+    Err(msg) => {
+      println!("{}", msg);
+      return;
+    }
   }
   let total_time = start_time.elapsed().unwrap().as_secs();
   let fetched_amount_kb: u64 = (fetched_amount / 1024).into();
@@ -118,4 +78,60 @@ pub fn do_update() {
   } else {
     println!("{}", "All packages are up to date.".green().bold());
   }
+}
+
+pub fn fetche_indexes_thread(
+  sources: &Vec<slist::Source>,
+) -> Result<(Vec<u64>, Vec<SourcePackage>), String> {
+  let mut handles = vec![];
+  let mut package_items = vec![];
+  let mut fetched_sizes = vec![];
+
+  let (tx, rx) = mpsc::channel();
+  for ix in 0..sources.len() {
+    let source = sources[ix].clone();
+    let tx = tx.clone();
+    let handle = thread::spawn(move || {
+      println!("Get:{} {}", ix, source.info());
+      let raw_index = match fetcher::fetchIndex(&source) {
+        Ok(_raw_index) => _raw_index,
+        Err(msg) => {
+          println!("{}", msg);
+          return;
+        }
+      };
+      match cache::write_cache_raw(&raw_index, &source) {
+        Ok(()) => {}
+        Err(msg) => {
+          println!("{}", msg);
+          return;
+        }
+      }
+      let fetched_size = raw_index.len() as u64;
+      match source::SourcePackage::from_row(&raw_index) {
+        Ok(mut _items) => {
+          tx.send(Ok((fetched_size, _items))).unwrap();
+        }
+        Err(msg) => {
+          tx.send(Err(msg)).unwrap();
+        }
+      }
+    });
+    handles.push(handle);
+  }
+  for handle in handles {
+    match rx.recv().unwrap() {
+      Ok((fetched_size, mut item)) => {
+        package_items.append(&mut item);
+        fetched_sizes.push(fetched_size);
+      }
+      Err(msg) => {
+        println!("{}", msg);
+        return Err(msg);
+      }
+    }
+    handle.join().unwrap();
+  }
+
+  Ok((fetched_sizes, package_items))
 }
