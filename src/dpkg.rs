@@ -1,7 +1,8 @@
 use crate::cache;
-use crate::slist::Source;
 use crate::source;
 use crate::source::SourcePackage;
+use colored::*;
+use std::process::{Command, Stdio};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PACKAGE_STATE {
@@ -182,14 +183,20 @@ pub fn install_archived_package(package: &SourcePackage) -> Result<(), String> {
   let _a = package.filename.rfind('/').unwrap();
   let debname = format!("archive/{}", &package.filename[_a + 1..]);
 
-  let output = std::process::Command::new("dpkg")
+  let output = Command::new("dpkg")
     .args(&["-i", &debname])
-    .output()
+    .stdout(Stdio::piped())
+    .stderr(Stdio::piped())
+    .spawn()
+    .unwrap()
+    .wait_with_output()
     .unwrap();
   let outstr = String::from_utf8(output.stdout).unwrap();
   println!("{}", outstr);
 
   if !output.status.success() {
+    let errstr = String::from_utf8(output.stderr).unwrap();
+    println!("{}", errstr.red());
     return Err("dpkg exited with failing error code.".to_string());
   }
 
