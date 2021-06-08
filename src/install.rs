@@ -238,7 +238,6 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
 
 #[cfg(test)]
 pub mod test {
-  #[test]
   fn test_vim_tiny() {
     let package = "vim-common";
     let items = crate::cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true);
