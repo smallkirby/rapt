@@ -4,7 +4,7 @@
 `rapt` is toy-version of `apt`(Debian Package Management System).  
 `rapt` doesn't have much functionalities `apt` has for simplicity. `rapt` supports completely limited number of architectures or formats.
   
-![rapt-update](img/rapt1.png)
+![rapt-update](img/rapt-install.mp4)
 
 ## Progress
 | Status | Functionality |
@@ -14,7 +14,7 @@
 | 🌤 | `rapt search` |
 | 🌤 | `rapt list` |
 | ⛈ | `rapt upgrade` |
-| ⛈ | `rapt install` |
+| ☁ | `rapt install` |
   
 ### legend
 - ☀️: completed
