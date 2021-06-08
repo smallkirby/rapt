@@ -130,7 +130,6 @@ fn sub_missing_or_old_dependencies_recursive(
     Ok(_missing_package_name) => _missing_package_name,
     Err(msg) => return Err(msg),
   };
-  ret_items.append(&mut missing_package_names);
 
   // get instances of missing/old packages
   let missing_packages = cache::search_cache_with_names(
@@ -160,6 +159,7 @@ fn sub_missing_or_old_dependencies_recursive(
     ));
   }
 
+  ret_items.append(&mut missing_package_names);
   // recursively search missing/old dependencies
   for p in missing_packages {
     match sub_missing_or_old_dependencies_recursive(&p, acc) {
