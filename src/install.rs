@@ -31,24 +31,25 @@ pub fn do_install(package: &str) {
   } else {
     let target_package =
       &cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true)[0];
-    if dpkg::check_missing_or_old(
+    match dpkg::check_missing_or_old(
       &target_package.package,
       &Some(target_package.version.clone()),
     )
     .unwrap()
     {
-      match install_package(&target_package) {
+      dpkg::PACKAGE_STATE::MISSING => match install_package(&target_package) {
         Ok(()) => {}
         Err(msg) => {
           println!("{}", msg);
           return;
         }
+      },
+      dpkg::PACKAGE_STATE::UPTODATE | dpkg::PACKAGE_STATE::OLD => {
+        println!(
+          "Package {} is already installed.",
+          target_package.package.green()
+        );
       }
-    } else {
-      println!(
-        "Package {} is already installed.",
-        target_package.package.green()
-      );
     }
   }
 }
@@ -108,23 +109,46 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   // read package info from control
   let control = std::fs::read_to_string("tmp/control").unwrap();
   let _packages = SourcePackage::from_row(&control).unwrap();
+
+  // find missing/old dependencies
   let package = &cache::search_cache_with_name_glob(
     &glob::Pattern::new(&_packages.iter().nth(0).unwrap().package).unwrap(),
     true,
   )[0];
-  let missing_package_names = match dpkg::get_missing_or_old_dependencies_recursive(package) {
+  let missing_old_package_names = match dpkg::get_missing_or_old_dependencies_recursive(package) {
     Ok(_missing_packages) => _missing_packages,
     Err(msg) => return Err(msg),
   };
-  let missing_packages = cache::search_cache_with_names(&missing_package_names);
+  let missing_package_names = missing_old_package_names
+    .iter()
+    .filter(|c| c.1 == dpkg::PACKAGE_STATE::MISSING)
+    .collect::<Vec<_>>();
+  let old_package_names = missing_old_package_names
+    .iter()
+    .filter(|c| c.1 == dpkg::PACKAGE_STATE::OLD)
+    .collect::<Vec<_>>();
+  let missing_packages = cache::search_cache_with_names(
+    &missing_package_names
+      .iter()
+      .map(|item| item.0.clone())
+      .collect(),
+  );
+  let old_packages = cache::search_cache_with_names(
+    &old_package_names
+      .iter()
+      .map(|item| item.0.clone())
+      .collect(),
+  );
 
   print!("The following additional packages will be installed: \n  ");
   for mp in &missing_packages {
     print!("{} ", mp.package);
   }
+  for mp in &old_packages {
+    print!("{} ", mp.package);
+  }
   println!("");
 
-  // XXX SHOULD distinguish between update and new install
   print!("The following NEW packages will be installed: \n  ");
   print!("{} ", package.package);
   for mp in &missing_packages {
@@ -134,7 +158,10 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
 
   println!(
     "{} upgraded, {} newly installed, {} to remove and {} not upgraded.",
-    "?", "?", "?", "?"
+    old_packages.len(),
+    missing_packages.len() + 1,
+    "?",
+    "?"
   );
   println!("Need to get {} kB of archives.", "?");
   println!(
@@ -152,13 +179,18 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     return Err("Abort.".to_string());
   }
 
+  // XXX
   //// check permission
   //if users::get_current_uid() != 0 {
   //  return Err("install needs root permission.".to_string());
   //}
 
   // download all missing dependencies
-  for (ix, md) in missing_packages.iter().enumerate() {
+  for (ix, md) in missing_packages
+    .iter()
+    .chain(old_packages.iter())
+    .enumerate()
+  {
     print!("Get:{} {} ...", ix, md.package.green());
     std::io::stdout().flush();
     match fetcher::fetch_deb(&md) {
@@ -171,7 +203,12 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   }
 
   // install dependencies
-  for md in missing_packages.iter().rev() {
+  for (ix, md) in missing_packages
+    .iter()
+    .chain(old_packages.iter())
+    .rev()
+    .enumerate()
+  {
     println!("installing {} ...", md.package.green());
     match dpkg::install_archived_package(&md) {
       Ok(()) => {}
