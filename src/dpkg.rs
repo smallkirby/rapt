@@ -160,7 +160,6 @@ pub fn get_missing_or_old_dependencies_recursive(
 pub fn install_archived_package(package: &SourcePackage) -> Result<(), String> {
   let _a = package.filename.rfind('/').unwrap();
   let debname = format!("archive/{}", &package.filename[_a + 1..]);
-  println!("installing {}", debname);
 
   let output = std::process::Command::new("dpkg")
     .args(&["-i", &debname])

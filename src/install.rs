@@ -29,8 +29,39 @@ pub fn do_install(package: &str) {
       }
     }
   } else {
-    unimplemented!();
+    let target_package =
+      &cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true)[0];
+    if dpkg::check_missing_or_old(
+      &target_package.package,
+      &Some(target_package.version.clone()),
+    )
+    .unwrap()
+    {
+      match install_package(&target_package) {
+        Ok(()) => {}
+        Err(msg) => {
+          println!("{}", msg);
+          return;
+        }
+      }
+    } else {
+      println!(
+        "Package {} is already installed.",
+        target_package.package.green()
+      );
+    }
   }
+}
+
+pub fn install_package(package: &SourcePackage) -> Result<(), String> {
+  // install target package's deb
+  let debname = match fetcher::fetch_deb(&package) {
+    Ok(_debname) => _debname,
+    Err(msg) => return Err(msg),
+  };
+  println!("fetched {} into {}", package.package, debname);
+
+  install_deb(&path::Path::new(&format!("archive/{}", debname)))
 }
 
 pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
@@ -141,17 +172,21 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
 
   // install dependencies
   for md in missing_packages.iter().rev() {
+    println!("installing {} ...", md.package.green());
     match dpkg::install_archived_package(&md) {
-      Ok(()) => {},
+      Ok(()) => {}
       Err(msg) => return Err(msg),
     }
   }
 
-  // install target 
+  // install target
+  println!("installing {} ...", package.package.green().bold());
   match dpkg::install_archived_package(&package) {
-    Ok(()) => {},
+    Ok(()) => {}
     Err(msg) => return Err(msg),
   }
+
+  println!("{}", "Install complete.".yellow().bold());
 
   Err("".to_string())
 }

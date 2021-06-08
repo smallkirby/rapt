@@ -3,7 +3,7 @@ use crate::source;
 use flate2::read::GzDecoder;
 use std::io::prelude::*;
 
-pub fn fetch_deb(package: &source::SourcePackage) -> Result<(), String> {
+pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
   // create archive directory
   if !std::path::Path::new("archive").exists() {
     std::fs::create_dir("archive").unwrap();
@@ -34,7 +34,7 @@ pub fn fetch_deb(package: &source::SourcePackage) -> Result<(), String> {
   let content = res.bytes().unwrap();
   output.write_all(&content).unwrap();
 
-  Ok(())
+  Ok(debname)
 }
 
 pub fn fetchIndex(source: &slist::Source) -> Result<String, String> {
@@ -68,7 +68,6 @@ pub mod test {
     println!("{}", super::fetchIndex(&source).unwrap());
   }
 
-  #[test]
   fn test_fetch_deb() {
     let p = crate::source::SourcePackage {
       package: "vim".to_string(),
