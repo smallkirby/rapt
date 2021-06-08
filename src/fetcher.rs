@@ -28,15 +28,13 @@ pub fn fetch_deb(package: &source::SourcePackage) -> Result<(), String> {
       res.status().as_str()
     ));
   }
-  println!("uri: {}", uri);
   let _a = uri.rfind('/').unwrap();
   let debname = String::from(&uri[_a + 1..]);
-  println!("deb: {}", debname);
   let mut output = std::fs::File::create(format!("archive/{}", debname)).unwrap();
   let content = res.text().unwrap();
   std::io::copy(&mut content.as_bytes(), &mut output).unwrap();
 
-  Err("".to_string())
+  Ok(())
 }
 
 pub fn fetchIndex(source: &slist::Source) -> Result<String, String> {

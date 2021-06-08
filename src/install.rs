@@ -2,7 +2,7 @@ use crate::cache;
 use crate::dpkg;
 use crate::fetcher;
 use crate::source::SourcePackage;
-use colored::control;
+use colored::*;
 use flate2::read::GzDecoder;
 use glob;
 use regex::Regex;
@@ -126,10 +126,21 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   //  return Err("install needs root permission.".to_string());
   //}
 
-  println!("{:?}", package);
-  match fetcher::fetch_deb(package) {
-    Ok(_) => {}
-    Err(_) => panic!(""),
+  // download all missing dependencies
+  for (ix, md) in missing_packages.iter().enumerate() {
+    print!("Get:{} {} ...", ix, md.package.green());
+    std::io::stdout().flush();
+    match fetcher::fetch_deb(&md) {
+      Ok(_) => {
+        println!("DONE");
+      }
+      Err(msg) => return Err(msg),
+    }
+    println!("Fetched {} kB in {}s ({} kB/s)", "?", "?", "?");
+  }
+
+  for md in missing_packages.iter().rev() {
+    dpkg::install_archived_package(&md).unwrap();
   }
 
   Err("".to_string())
