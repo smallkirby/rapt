@@ -60,11 +60,14 @@ pub fn do_update() {
   }
   let total_time = start_time.elapsed().unwrap().as_secs();
   let fetched_amount_kb: u64 = (fetched_amount / 1024).into();
+  let bps = if total_time == 0 {
+    fetched_amount_kb
+  } else {
+    fetched_amount_kb / total_time
+  };
   println!(
     "Fetched {} kB in {}s ({} kB/s)",
-    fetched_amount_kb,
-    total_time,
-    fetched_amount_kb / total_time
+    fetched_amount_kb, total_time, bps
   );
 
   print!("Reading package lists... ");
