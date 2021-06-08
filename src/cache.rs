@@ -6,6 +6,17 @@ use std::fs;
 use std::io::{Error, Write};
 use std::path::Path;
 
+pub fn search_cache_with_names(names: &Vec<String>) -> Vec<SourcePackage> {
+  let mut ret_items = vec![];
+  for name in names {
+    let name_glob = glob::Pattern::new(&name).unwrap();
+    let mut founds = search_cache_with_name_glob(&name_glob, true);
+    ret_items.append(&mut founds);
+  }
+
+  ret_items
+}
+
 pub fn search_cache_with_name_glob(glob: &Pattern, case_sensitive: bool) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
   let cached_items = get_cached_items();

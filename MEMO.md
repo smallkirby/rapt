@@ -44,3 +44,10 @@ https://www.debian.org/doc/debian-policy/ch-relationships.html
 
 ## Description
 複数行になり得る(leading space)
+
+# .deb
+以下の3つのfile/dirがarアーカイブされている。
+- debian-binary: パッケージのバージョン(2.0 now)
+- data archive: 実際にインストールするファイル群。
+- control archive: pre/postスクリプト等。
+  - この中の`control`がindexのentryと同じ内容を持っていて、dependency解決できる。

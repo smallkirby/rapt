@@ -5,6 +5,7 @@ pub mod cache;
 mod cli;
 pub mod dpkg;
 pub mod fetcher;
+pub mod install;
 pub mod list;
 pub mod search;
 pub mod show;
@@ -27,6 +28,7 @@ pub enum Command {
   LIST,
   SEARCH,
   SHOW,
+  INSTALL,
   UNKNOWN,
 }
 
@@ -59,6 +61,9 @@ fn main() {
     }
     Command::SHOW => {
       show::do_show(&opts.package);
+    }
+    Command::INSTALL => {
+      install::do_install(&opts.package);
     }
     Command::UNKNOWN => {
       println!("Unknown subcommand");
@@ -98,6 +103,11 @@ pub fn parse_opts(opts: &mut Opts) {
   } else if let Some(ref matches) = matches.subcommand_matches("show") {
     log::trace!("subcommand: show");
     opts.command = Command::SHOW;
+    opts.package = matches.value_of("package").unwrap().to_string();
+    log::trace!("package: {}", opts.package);
+  } else if let Some(ref matches) = matches.subcommand_matches("install") {
+    log::trace!("subcommand: install");
+    opts.command = Command::INSTALL;
     opts.package = matches.value_of("package").unwrap().to_string();
     log::trace!("package: {}", opts.package);
   } else {

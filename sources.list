@@ -1,2 +1,1 @@
 deb http://jp.archive.ubuntu.com/ubuntu/ focal main restricted
-deb http://security.ubuntu.com/ubuntu focal-security main
