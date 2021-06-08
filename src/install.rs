@@ -139,8 +139,18 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     println!("Fetched {} kB in {}s ({} kB/s)", "?", "?", "?");
   }
 
+  // install dependencies
   for md in missing_packages.iter().rev() {
-    dpkg::install_archived_package(&md).unwrap();
+    match dpkg::install_archived_package(&md) {
+      Ok(()) => {},
+      Err(msg) => return Err(msg),
+    }
+  }
+
+  // install target 
+  match dpkg::install_archived_package(&package) {
+    Ok(()) => {},
+    Err(msg) => return Err(msg),
   }
 
   Err("".to_string())

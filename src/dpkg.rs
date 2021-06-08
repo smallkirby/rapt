@@ -173,5 +173,5 @@ pub fn install_archived_package(package: &SourcePackage) -> Result<(), String> {
     return Err("dpkg exited with failing error code.".to_string());
   }
 
-  unimplemented!();
+  Ok(())
 }
