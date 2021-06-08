@@ -1,7 +1,7 @@
 use crate::cache;
 use crate::slist::Source;
+use crate::source;
 use crate::source::SourcePackage;
-use version_compare::{CompOp, Version, VersionCompare};
 
 pub fn read_dpkg_state() -> Result<Vec<SourcePackage>, String> {
   let raw_packages = match std::fs::read_to_string("/var/lib/dpkg/status") {
@@ -35,7 +35,8 @@ pub fn check_upgradable(index_items: &Vec<SourcePackage>) -> Result<Vec<SourcePa
     }
     let iitem = iitems[0];
 
-    if Version::from(&iitem.version) > Version::from(&ditem.version) {
+    let cmp_res = source::comp_version(&iitem.version, &ditem.version);
+    if cmp_res > 0 {
       upgradable_items.push(ditem);
     }
   }
@@ -74,7 +75,7 @@ pub fn check_missing_or_old(
     if dpackage_name == package_name {
       match package_version {
         Some(v) => {
-          if Version::from(&ditem.version).unwrap() > Version::from(&v).unwrap() {
+          if source::comp_version(&ditem.version, &v) > 0 {
             return Ok(false);
           } else {
             return Ok(true);
