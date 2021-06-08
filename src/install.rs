@@ -240,7 +240,8 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
 pub mod test {
   fn test_vim_tiny() {
     let package = "vim-common";
-    let items = crate::cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true);
+    let items =
+      crate::cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true);
     let missing = crate::dpkg::get_missing_or_old_dependencies(&items[0]);
     println!("{:?}", missing);
     println!("{:?}", crate::dpkg::check_missing_or_old("xxd", &None));
