@@ -31,8 +31,8 @@ pub fn fetch_deb(package: &source::SourcePackage) -> Result<(), String> {
   let _a = uri.rfind('/').unwrap();
   let debname = String::from(&uri[_a + 1..]);
   let mut output = std::fs::File::create(format!("archive/{}", debname)).unwrap();
-  let content = res.text().unwrap();
-  std::io::copy(&mut content.as_bytes(), &mut output).unwrap();
+  let content = res.bytes().unwrap();
+  output.write_all(&content).unwrap();
 
   Ok(())
 }
@@ -68,6 +68,7 @@ pub mod test {
     println!("{}", super::fetchIndex(&source).unwrap());
   }
 
+  #[test]
   fn test_fetch_deb() {
     let p = crate::source::SourcePackage {
       package: "vim".to_string(),
