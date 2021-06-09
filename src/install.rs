@@ -10,7 +10,6 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path;
-use users;
 use xz2::read::XzDecoder;
 
 pub fn do_install(package: &str) {
@@ -45,14 +44,14 @@ pub fn do_install(package: &str) {
     )
     .unwrap()
     {
-      dpkg::PACKAGE_STATE::MISSING => match install_package(&target_package) {
+      dpkg::PackageState::MISSING => match install_package(&target_package) {
         Ok(()) => {}
         Err(msg) => {
           println!("{}", msg);
           return;
         }
       },
-      dpkg::PACKAGE_STATE::UPTODATE | dpkg::PACKAGE_STATE::OLD => {
+      dpkg::PackageState::UPTODATE | dpkg::PackageState::OLD => {
         println!(
           "Package {} is already installed.",
           target_package.package.green()
@@ -129,11 +128,11 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   };
   let missing_package_names = missing_old_package_names
     .iter()
-    .filter(|c| c.1 == dpkg::PACKAGE_STATE::MISSING)
+    .filter(|c| c.1 == dpkg::PackageState::MISSING)
     .collect::<Vec<_>>();
   let old_package_names = missing_old_package_names
     .iter()
-    .filter(|c| c.1 == dpkg::PACKAGE_STATE::OLD)
+    .filter(|c| c.1 == dpkg::PackageState::OLD)
     .collect::<Vec<_>>();
   let missing_packages = cache::search_cache_with_names(
     &missing_package_names
@@ -178,7 +177,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   );
 
   print!("Do you want to continue? [Y/n] ");
-  std::io::stdout().flush();
+  std::io::stdout().flush().unwrap();
   let mut user_yn = String::new();
   std::io::stdin()
     .read_line(&mut user_yn)
@@ -200,7 +199,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     .enumerate()
   {
     print!("Get:{} {} ...", ix, md.package.green());
-    std::io::stdout().flush();
+    std::io::stdout().flush().unwrap();
     match fetcher::fetch_deb(&md) {
       Ok(_) => {
         println!("DONE");
@@ -211,7 +210,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   }
 
   // install dependencies
-  for (ix, md) in missing_packages
+  for (_ix, md) in missing_packages
     .iter()
     .chain(old_packages.iter())
     .rev()
@@ -238,6 +237,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
 
 #[cfg(test)]
 pub mod test {
+  #[allow(dead_code)]
   fn test_vim_tiny() {
     let package = "vim-common";
     let items =

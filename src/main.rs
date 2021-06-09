@@ -74,7 +74,7 @@ fn main() {
 pub fn parse_opts(opts: &mut Opts) {
   let matches = cli::build_cli().get_matches();
 
-  if let Some(ref matches) = matches.subcommand_matches("update") {
+  if let Some(ref _matches) = matches.subcommand_matches("update") {
     log::trace!("subcommand: update");
     opts.command = Command::UPDATE;
   } else if let Some(ref matches) = matches.subcommand_matches("list") {

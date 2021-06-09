@@ -1,9 +1,9 @@
 use crate::slist;
 use crate::source;
 use crate::source::SourcePackage;
-use glob::{glob, Pattern};
+use glob::Pattern;
 use std::fs;
-use std::io::{Error, Write};
+use std::io::Write;
 use std::path::Path;
 
 pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
@@ -52,7 +52,7 @@ pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
             };
           }
           Err(msg) => {
-            println!("failed to open cache file.");
+            println!("failed to open cache file: {}", msg);
             return Err(());
           }
         };
@@ -144,7 +144,7 @@ pub fn get_cached_items() -> Vec<SourcePackage> {
             };
           }
           Err(msg) => {
-            println!("failed to open cache file.");
+            println!("failed to open cache file: {}", msg);
             return vec![];
           }
         };

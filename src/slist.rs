@@ -43,16 +43,14 @@ impl Source {
   pub fn info(&self) -> String {
     let proto = match self.protocol {
       Protocol::HTTP => "http",
-      _ => unimplemented!(),
     };
     format!("{}://{} {} {}", proto, self.uri, self.dists, self.component)
   }
 
-  pub fn toIndexUri(&self) -> String {
+  pub fn to_index_uri(&self) -> String {
     let mut iuri = String::new();
     match self.protocol {
       Protocol::HTTP => iuri.push_str("http"),
-      _ => unimplemented!(),
     };
     iuri.push_str("://");
     iuri.push_str(&self.uri);
@@ -68,7 +66,7 @@ impl Source {
   }
 }
 
-pub fn parseSourceFile(filename: &str) -> Result<Vec<Source>, String> {
+pub fn parse_source_file(filename: &str) -> Result<Vec<Source>, String> {
   let mut sources = vec![];
   let source_lines = if let Ok(_s) = std::fs::read_to_string("sources.list") {
     _s
@@ -77,7 +75,7 @@ pub fn parseSourceFile(filename: &str) -> Result<Vec<Source>, String> {
   };
   for line in source_lines.split("\n").collect::<Vec<_>>() {
     if line.len() != 0 {
-      match parseSourceLine(line) {
+      match parse_source_line(line) {
         Ok(mut items) => sources.append(&mut items),
         Err(msg) => return Err(msg),
       }
@@ -87,7 +85,13 @@ pub fn parseSourceFile(filename: &str) -> Result<Vec<Source>, String> {
   Ok(sources)
 }
 
-pub fn parseSourceLine(line: &str) -> Result<Vec<Source>, String> {
+pub fn parse_source_line(line: &str) -> Result<Vec<Source>, String> {
+  if line.len() == 0 {
+    return Ok(vec![]);
+  }
+  if line.chars().nth(0).unwrap() == '#' {
+    return Ok(vec![]);
+  }
   let parts = line.split(" ").collect::<Vec<_>>();
   if parts.len() < 4 {
     return Err(String::from("Malformed source line."));
@@ -131,7 +135,7 @@ pub fn parseSourceLine(line: &str) -> Result<Vec<Source>, String> {
 #[cfg(test)]
 pub mod tests {
   #[test]
-  pub fn test_parseSourceLine() {
+  pub fn test_parse_source_line() {
     let line = "deb http://jp.archive.ubuntu.com/ubuntu/ focal main restricted";
     let s1 = super::Source {
       stype: super::SourceType::DEB,
@@ -147,16 +151,16 @@ pub mod tests {
       dists: "focal".to_string(),
       component: "restricted".to_string(),
     };
-    let sources = super::parseSourceLine(line).unwrap();
+    let sources = super::parse_source_line(line).unwrap();
     assert_eq!(sources[0], s1);
     assert_eq!(sources[1], s2);
   }
 
   #[test]
-  pub fn test_toIndexUri() {
+  pub fn test_to_index_uri() {
     let line = "deb http://jp.archive.ubuntu.com/ubuntu/ focal main";
-    let source = &super::parseSourceLine(line).unwrap()[0];
-    let uri = source.toIndexUri();
+    let source = &super::parse_source_line(line).unwrap()[0];
+    let uri = source.to_index_uri();
     assert_eq!(
       uri,
       "http://jp.archive.ubuntu.com/ubuntu/dists/focal/main/binary-amd64/Packages.gz"

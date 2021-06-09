@@ -1,6 +1,6 @@
 use colored::*;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use std::sync::{mpsc, Mutex};
+use std::sync::mpsc;
 use std::thread;
 
 use crate::cache;
@@ -16,7 +16,7 @@ pub fn do_update() {
   let mut package_items = vec![];
 
   // read sources.list
-  let sources = match slist::parseSourceFile("sources.list") {
+  let sources = match slist::parse_source_file("sources.list") {
     Ok(_items) => _items,
     Err(msg) => {
       println!("{}", msg);
@@ -105,7 +105,7 @@ pub fn fetche_indexes_thread(
     progress_bar.set_style(progress_style.clone());
 
     let handle = thread::spawn(move || {
-      let raw_index = match fetcher::fetchIndex(&source, Some(progress_bar)) {
+      let raw_index = match fetcher::fetch_index(&source, Some(progress_bar)) {
         Ok(_raw_index) => _raw_index,
         Err(msg) => {
           println!("{}", msg);

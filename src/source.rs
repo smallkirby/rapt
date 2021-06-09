@@ -1,8 +1,5 @@
 use crate::cache;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use std::fs;
-use std::io::{Error, Write};
-use std::path::Path;
+use indicatif::ProgressBar;
 use std::{cmp::Ordering, collections::HashMap};
 use strum_macros::Display;
 
@@ -34,7 +31,7 @@ pub struct SourcePackage {
 }
 
 impl SourcePackage {
-  pub fn toPoolUri(&self) -> Result<String, ()> {
+  pub fn to_pool_uri(&self) -> Result<String, ()> {
     let mut puri = String::new();
     puri.push_str("http");
     puri.push_str("://");
@@ -517,30 +514,6 @@ pub fn resolve_duplication(
   Ok(resolved)
 }
 
-// XXX not needed??
-pub fn write_cache(items: &Vec<SourcePackage>, filename: &str) -> Result<(), String> {
-  unimplemented!();
-
-  if !Path::new("lists").exists() {
-    return Err("cache directory 'lists' doesn't exist. aborting...".to_string());
-  };
-  if Path::new(&format!("lists/{}", filename)).exists() {
-    // clean the file for simplicity
-    fs::remove_file(format!("lists/{}", filename)).unwrap();
-  };
-
-  let mut out = fs::File::create(format!("lists/{}", filename)).unwrap();
-  for item in items {
-    write!(out, "Package: {}\n", item.package).unwrap();
-    write!(out, "Architecture: {}\n", item.arch.iter().nth(0).unwrap()).unwrap();
-    write!(out, "Version: {}\n", item.version).unwrap();
-    write!(out, "Priority: {}\n", item.priority).unwrap();
-    write!(out, "\n").unwrap();
-  }
-
-  Err("".to_string())
-}
-
 // @ret: 1 iif vs1 > vs2, -1 iif vs1 < vs2, 0 iif vs1 == vs2
 // here, a>b means that a is newer than b.
 pub fn comp_version(vs1: &str, vs2: &str) -> i32 {
@@ -640,6 +613,7 @@ pub fn comp_upstream_version(vs1: &str, vs2: &str) -> i32 {
 }
 
 // @ret: 1 if c1 is more new
+#[allow(non_snake_case)]
 pub fn comp_version_char(c1: Option<char>, c2: Option<char>) -> i32 {
   let MAGIC = -0x50;
   let HYPHEN = -0x100;
@@ -711,7 +685,7 @@ pub fn split_in_upstream(vs: &str) -> Vec<(String, String)> {
 }
 
 pub fn split_version(vs: &str, reg: &regex::Regex) -> (Option<u32>, String, Option<String>) {
-  let mut v;
+  let v;
   let epoc_ix = vs.find(':');
   let epoc = match epoc_ix {
     Some(epoc_ix) => {

@@ -2,11 +2,11 @@ use crate::cache;
 use crate::source;
 use crate::source::SourcePackage;
 use colored::*;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 use std::process::{Command, Stdio};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum PACKAGE_STATE {
+pub enum PackageState {
   MISSING,
   OLD,
   UPTODATE,
@@ -70,7 +70,7 @@ pub fn check_upgradable(
 pub fn check_missing_or_old(
   _package_name: &str,
   package_version: &Option<String>,
-) -> Result<PACKAGE_STATE, String> {
+) -> Result<PackageState, String> {
   let installed_items = match read_dpkg_state() {
     Ok(_installed_items) => _installed_items,
     Err(msg) => return Err(msg),
@@ -99,31 +99,31 @@ pub fn check_missing_or_old(
         Some(v) => {
           let res_cmp_version = source::comp_version(&ditem.version, &v);
           if res_cmp_version >= 0 {
-            return Ok(PACKAGE_STATE::UPTODATE);
+            return Ok(PackageState::UPTODATE);
           } else {
-            return Ok(PACKAGE_STATE::OLD);
+            return Ok(PackageState::OLD);
           }
         }
         None => {
-          return Ok(PACKAGE_STATE::UPTODATE); // if required version is missing, regard it as up-to-date
+          return Ok(PackageState::UPTODATE); // if required version is missing, regard it as up-to-date
         }
       }
     }
   }
 
-  Ok(PACKAGE_STATE::MISSING)
+  Ok(PackageState::MISSING)
 }
 
 pub fn get_missing_or_old_dependencies(
   package: &SourcePackage,
-) -> Result<Vec<(String, PACKAGE_STATE)>, String> {
+) -> Result<Vec<(String, PackageState)>, String> {
   let mut ret_items = vec![];
 
   for (dep_package, dep_version) in &package.depends {
     match check_missing_or_old(dep_package, dep_version) {
       Ok(is_missing) => match is_missing {
-        PACKAGE_STATE::MISSING => ret_items.push((dep_package.clone(), PACKAGE_STATE::MISSING)),
-        PACKAGE_STATE::OLD => ret_items.push((dep_package.clone(), PACKAGE_STATE::OLD)),
+        PackageState::MISSING => ret_items.push((dep_package.clone(), PackageState::MISSING)),
+        PackageState::OLD => ret_items.push((dep_package.clone(), PackageState::OLD)),
         _ => {}
       },
       Err(msg) => return Err(msg),
@@ -135,9 +135,9 @@ pub fn get_missing_or_old_dependencies(
 
 fn sub_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
-  acc: &Vec<(String, PACKAGE_STATE)>,
-) -> Result<Vec<(String, PACKAGE_STATE)>, String> {
-  let mut ret_items: Vec<(String, PACKAGE_STATE)> = acc.clone();
+  acc: &Vec<(String, PackageState)>,
+) -> Result<Vec<(String, PackageState)>, String> {
+  let mut ret_items: Vec<(String, PackageState)> = acc.clone();
 
   // search missing/old dependencies for @package
   let mut missing_package_names = match get_missing_or_old_dependencies(package) {
@@ -189,7 +189,7 @@ fn sub_missing_or_old_dependencies_recursive(
 
 pub fn get_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
-) -> Result<Vec<(String, PACKAGE_STATE)>, String> {
+) -> Result<Vec<(String, PackageState)>, String> {
   sub_missing_or_old_dependencies_recursive(package, &mut vec![])
 }
 

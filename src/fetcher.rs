@@ -1,8 +1,8 @@
 use crate::slist;
 use crate::source;
 use flate2::read::GzDecoder;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use reqwest::{header, Client, Url};
+use indicatif::ProgressBar;
+use reqwest::{header, Client};
 use std::io::prelude::*;
 
 pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
@@ -13,7 +13,7 @@ pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
 
   /* XXX must check archive directory first for cache */
 
-  let uri = match package.toPoolUri() {
+  let uri = match package.to_pool_uri() {
     Ok(_uri) => _uri,
     Err(()) => {
       return Err(format!(
@@ -39,12 +39,12 @@ pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
   Ok(debname)
 }
 
-pub fn fetchIndex(
+pub fn fetch_index(
   source: &slist::Source,
   _progress_bar: Option<ProgressBar>,
 ) -> Result<String, String> {
   let mut buf: Vec<u8> = vec![];
-  let indexuri = source.toIndexUri();
+  let indexuri = source.to_index_uri();
   match _progress_bar {
     Some(progress_bar) => {
       let _indexuri = indexuri.clone();
@@ -115,20 +115,22 @@ pub fn fetchIndex(
 
 #[cfg(test)]
 pub mod test {
-  fn test_fetchIndex() {
+  #[allow(dead_code)]
+  fn test_fetch_index() {
     use crate::slist;
     let source =
-      &slist::parseSourceLine("deb http://jp.archive.ubuntu.com/ubuntu/ focal main restricted")
+      &slist::parse_source_line("deb http://jp.archive.ubuntu.com/ubuntu/ focal main restricted")
         .unwrap()[0];
-    println!("{}", super::fetchIndex(&source, None).unwrap());
+    println!("{}", super::fetch_index(&source, None).unwrap());
   }
 
+  #[allow(dead_code)]
   fn test_fetch_deb() {
     let p = crate::source::SourcePackage {
       package: "vim".to_string(),
       filename: "pool/main/v/vim/vim_8.1.2269-1ubuntu5_amd64.deb".to_string(),
       ..Default::default()
     };
-    super::fetch_deb(&p);
+    super::fetch_deb(&p).unwrap();
   }
 }
