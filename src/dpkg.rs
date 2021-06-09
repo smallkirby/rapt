@@ -1,6 +1,6 @@
 use crate::cache;
-use crate::source;
 use crate::source::SourcePackage;
+use crate::version::*;
 use colored::*;
 use indicatif::ProgressBar;
 use std::process::{Command, Stdio};
@@ -54,7 +54,7 @@ pub fn check_upgradable(
     }
     let iitem = iitems[0];
 
-    let cmp_res = source::comp_version(&iitem.version, &ditem.version);
+    let cmp_res = comp_version(&iitem.version, &ditem.version);
     if cmp_res > 0 {
       upgradable_items.push(ditem);
     }
@@ -97,7 +97,7 @@ pub fn check_missing_or_old(
     if dpackage_name == package_name {
       match package_version {
         Some(v) => {
-          let res_cmp_version = source::comp_version(&ditem.version, &v);
+          let res_cmp_version = comp_version(&ditem.version, &v);
           if res_cmp_version >= 0 {
             return Ok(PackageState::UPTODATE);
           } else {

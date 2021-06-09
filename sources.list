@@ -1,5 +1,5 @@
 deb http://jp.archive.ubuntu.com/ubuntu/ focal main restricted
-deb http://jp.archive.ubuntu.com/ubuntu/ focal main restricted
-deb http://jp.archive.ubuntu.com/ubuntu/ focal-updates main restricted
-deb http://jp.archive.ubuntu.com/ubuntu/ focal universe
-deb http://archive.canonical.com/ubuntu focal partner
+#deb http://jp.archive.ubuntu.com/ubuntu/ focal main restricted
+#deb http://jp.archive.ubuntu.com/ubuntu/ focal-updates main restricted
+#deb http://jp.archive.ubuntu.com/ubuntu/ focal universe
+#deb http://archive.canonical.com/ubuntu focal partner
