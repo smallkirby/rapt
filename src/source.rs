@@ -1,4 +1,5 @@
 use crate::cache;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::fs;
 use std::io::{Error, Write};
 use std::path::Path;
@@ -458,9 +459,20 @@ pub fn parse_depends(_dep: &str) -> Result<(String, Option<String>), String> {
   }
 }
 
-pub fn resolve_duplication(sources: &Vec<SourcePackage>) -> Result<Vec<SourcePackage>, String> {
+pub fn resolve_duplication(
+  sources: &Vec<SourcePackage>,
+  _progress_bar: Option<&ProgressBar>,
+) -> Result<Vec<SourcePackage>, String> {
   let mut resolved: Vec<SourcePackage> = vec![];
+  if _progress_bar.is_some() {
+    _progress_bar.unwrap().set_length(sources.len() as u64);
+    _progress_bar.unwrap().set_position(0);
+  }
   for source in sources {
+    if _progress_bar.is_some() {
+      _progress_bar.unwrap().set_message(source.package.clone());
+      _progress_bar.unwrap().inc(1);
+    }
     let dups_num = resolved
       .iter()
       .filter(|&item| item.package == source.package)
@@ -499,6 +511,9 @@ pub fn resolve_duplication(sources: &Vec<SourcePackage>) -> Result<Vec<SourcePac
     }
   }
 
+  if _progress_bar.is_some() {
+    _progress_bar.unwrap().finish_with_message("DONE");
+  }
   Ok(resolved)
 }
 
@@ -810,7 +825,7 @@ pub mod test {
     let sample = std::fs::read_to_string("test/sample-duplicated-index").unwrap();
     let psources = super::SourcePackage::from_row(&sample).unwrap();
     assert_eq!(psources.len(), 3);
-    let resolved = super::resolve_duplication(&psources).unwrap();
+    let resolved = super::resolve_duplication(&psources, None).unwrap();
     assert_eq!(resolved.len(), 1);
     let dpkg = resolved.iter().nth(0).unwrap();
     assert_eq!(dpkg.package, "dpkg");

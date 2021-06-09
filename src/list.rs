@@ -25,7 +25,7 @@ pub fn do_list(package: &str, installed: bool, upgradable: bool) {
     list_packages(&found_items);
   } else if upgradable {
     let cached_items = cache::get_cached_items();
-    let upgradable_items = match dpkg::check_upgradable(&cached_items) {
+    let upgradable_items = match dpkg::check_upgradable(&cached_items, None) {
       Ok(_upgradable_items) => _upgradable_items,
       Err(msg) => {
         println!("{}", msg);

@@ -2,6 +2,7 @@ use crate::cache;
 use crate::source;
 use crate::source::SourcePackage;
 use colored::*;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::process::{Command, Stdio};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -20,16 +21,26 @@ pub fn read_dpkg_state() -> Result<Vec<SourcePackage>, String> {
   SourcePackage::from_row(&raw_packages)
 }
 
-pub fn check_upgradable(index_items: &Vec<SourcePackage>) -> Result<Vec<SourcePackage>, String> {
+pub fn check_upgradable(
+  index_items: &Vec<SourcePackage>,
+  _progress_bar: Option<&ProgressBar>,
+) -> Result<Vec<SourcePackage>, String> {
   let mut upgradable_items = vec![];
 
   let dpkg_items = match read_dpkg_state() {
     Ok(_dpkg_items) => _dpkg_items,
     Err(msg) => return Err(msg),
   };
-  log::info!("dpkg has {} installed packages.", dpkg_items.len());
+  if _progress_bar.is_some() {
+    _progress_bar.unwrap().set_length(dpkg_items.len() as u64);
+    _progress_bar.unwrap().set_position(0);
+  }
 
   for ditem in dpkg_items {
+    if _progress_bar.is_some() {
+      _progress_bar.unwrap().set_message(ditem.package.clone());
+      _progress_bar.unwrap().inc(1);
+    }
     let iitems = index_items
       .iter()
       .filter(|item| item.package == ditem.package)
@@ -49,6 +60,9 @@ pub fn check_upgradable(index_items: &Vec<SourcePackage>) -> Result<Vec<SourcePa
     }
   }
 
+  if _progress_bar.is_some() {
+    _progress_bar.unwrap().finish_with_message("DONE");
+  }
   Ok(upgradable_items)
 }
 

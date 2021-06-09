@@ -4,7 +4,6 @@ use flate2::read::GzDecoder;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use reqwest::{header, Client, Url};
 use std::io::prelude::*;
-use tokio::io::AsyncWriteExt;
 
 pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
   // create archive directory

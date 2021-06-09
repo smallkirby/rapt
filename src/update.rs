@@ -52,25 +52,29 @@ pub fn do_update() {
     fetched_amount_kb, total_time, bps
   );
 
-  print!("Reading package lists... ");
-  let resolved_items = match source::resolve_duplication(&package_items) {
+  let progress_bar = ProgressBar::new(0);
+  progress_bar.set_style(
+    ProgressStyle::default_bar().template("Reading package information: {bar:40} {msg}"),
+  );
+  let resolved_items = match source::resolve_duplication(&package_items, Some(&progress_bar)) {
     Ok(_resolved_items) => _resolved_items,
     Err(msg) => {
       println!("\n{}", msg);
       return;
     }
   };
-  println!("DONE");
 
-  print!("Reading state information... ");
-  let upgradable_items = match dpkg::check_upgradable(&resolved_items) {
+  let progress_bar = ProgressBar::new(0);
+  progress_bar.set_style(
+    ProgressStyle::default_bar().template("Checking dpkg status       : {bar:40} {msg}"),
+  );
+  let upgradable_items = match dpkg::check_upgradable(&resolved_items, Some(&progress_bar)) {
     Ok(_upgradable_items) => _upgradable_items,
     Err(msg) => {
       println!("\n{}", msg);
       return;
     }
   };
-  println!("DONE");
   if upgradable_items.len() != 0 {
     println!(
       "{} packages are upgradable.",
