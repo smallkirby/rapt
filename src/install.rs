@@ -48,6 +48,7 @@ pub fn do_install(package: &str) {
       &target_package.package,
       &Some(target_package.version.clone()),
       Some(&progress_bar),
+      None,
     )
     .unwrap()
     {
@@ -255,11 +256,11 @@ pub mod test {
     let package = "vim-common";
     let items =
       crate::cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true);
-    let missing = crate::dpkg::get_missing_or_old_dependencies(&items[0], true);
+    let missing = crate::dpkg::get_missing_or_old_dependencies(&items[0], true, None);
     println!("{:?}", missing);
     println!(
       "{:?}",
-      crate::dpkg::check_missing_or_old("xxd", &None, None)
+      crate::dpkg::check_missing_or_old("xxd", &None, None, None)
     );
     panic!("");
   }

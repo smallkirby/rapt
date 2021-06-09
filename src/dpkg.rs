@@ -70,10 +70,14 @@ pub fn check_missing_or_old(
   _package_name: &str,
   package_version: &Option<String>,
   _progress_bar: Option<&ProgressBar>,
+  cacheitems: Option<Vec<SourcePackage>>,
 ) -> Result<PackageState, String> {
-  let installed_items = match read_dpkg_state() {
-    Ok(_installed_items) => _installed_items,
-    Err(msg) => return Err(msg),
+  let installed_items = match cacheitems {
+    Some(_cacheitems) => _cacheitems,
+    None => match read_dpkg_state() {
+      Ok(_installed_items) => _installed_items,
+      Err(msg) => return Err(msg),
+    },
   };
   let finalize_progress_bar = {
     || {
@@ -136,6 +140,7 @@ pub fn check_missing_or_old(
 pub fn get_missing_or_old_dependencies(
   package: &SourcePackage,
   show_progress: bool,
+  cacheitems: Option<Vec<SourcePackage>>,
 ) -> Result<Vec<(String, PackageState)>, String> {
   let mut ret_items = vec![];
 
@@ -146,7 +151,7 @@ pub fn get_missing_or_old_dependencies(
     );
     let progress_bar = if show_progress { Some(&tmp) } else { None };
 
-    match check_missing_or_old(dep_package, dep_version, progress_bar) {
+    match check_missing_or_old(dep_package, dep_version, progress_bar, cacheitems.clone()) {
       Ok(is_missing) => match is_missing {
         PackageState::MISSING => ret_items.push((dep_package.clone(), PackageState::MISSING)),
         PackageState::OLD => ret_items.push((dep_package.clone(), PackageState::OLD)),
@@ -162,14 +167,15 @@ pub fn get_missing_or_old_dependencies(
 fn sub_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
   acc: &mut Vec<(String, PackageState)>,
-  //progress_style: Option<&ProgressStyle>,
   show_progress: bool,
+  cacheitems: Option<Vec<SourcePackage>>,
 ) -> Result<Vec<(String, PackageState)>, String> {
   // search missing/old dependencies for @package
-  let mut missing_package_names = match get_missing_or_old_dependencies(package, show_progress) {
-    Ok(_missing_package_name) => _missing_package_name,
-    Err(msg) => return Err(msg),
-  };
+  let mut missing_package_names =
+    match get_missing_or_old_dependencies(package, show_progress, cacheitems.clone()) {
+      Ok(_missing_package_name) => _missing_package_name,
+      Err(msg) => return Err(msg),
+    };
 
   // get instances of missing/old packages
   let mut missing_packages = cache::search_cache_with_names(
@@ -223,7 +229,7 @@ fn sub_missing_or_old_dependencies_recursive(
   acc.append(&mut missing_package_names);
   // recursively search missing/old dependencies
   for p in missing_packages {
-    match sub_missing_or_old_dependencies_recursive(&p, acc, show_progress) {
+    match sub_missing_or_old_dependencies_recursive(&p, acc, show_progress, cacheitems.clone()) {
       Ok(mut names) => {
         names = names
           .into_iter()
@@ -242,7 +248,13 @@ pub fn get_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
   show_progress: bool,
 ) -> Result<Vec<(String, PackageState)>, String> {
-  sub_missing_or_old_dependencies_recursive(package, &mut vec![], show_progress)
+  // first, cache items in dpkg's state
+  let items = match read_dpkg_state() {
+    Ok(_items) => _items,
+    Err(msg) => return Err(msg),
+  };
+  // recursive search
+  sub_missing_or_old_dependencies_recursive(package, &mut vec![], show_progress, Some(items))
 }
 
 pub fn install_archived_package(package: &SourcePackage) -> Result<(), String> {
