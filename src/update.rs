@@ -1,4 +1,5 @@
 use colored::*;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::sync::{mpsc, Mutex};
 use std::thread;
 
@@ -88,12 +89,20 @@ pub fn fetche_indexes_thread(
   let mut fetched_sizes = vec![];
 
   let (tx, rx) = mpsc::channel();
+  let progress_bars = MultiProgress::new();
+  let progress_style = ProgressStyle::default_bar()
+    .template("Get: [{bar:40.cyan/blue}] {bytes}/{total_bytes} - {msg}")
+    .progress_chars("#>-");
+
   for ix in 0..sources.len() {
     let source = sources[ix].clone();
     let tx = tx.clone();
+    let progress_bar = progress_bars.add(ProgressBar::new(9999999999));
+    progress_bar.set_style(progress_style.clone());
+
     let handle = thread::spawn(move || {
-      println!("Get:{} {}", ix, source.info());
-      let raw_index = match fetcher::fetchIndex(&source) {
+      //println!("Get:{} {}", ix, source.info());
+      let raw_index = match fetcher::fetchIndex(&source, &progress_bar) {
         Ok(_raw_index) => _raw_index,
         Err(msg) => {
           println!("{}", msg);
@@ -119,6 +128,8 @@ pub fn fetche_indexes_thread(
     });
     handles.push(handle);
   }
+
+  progress_bars.join().unwrap();
   for handle in handles {
     match rx.recv().unwrap() {
       Ok((fetched_size, mut item)) => {

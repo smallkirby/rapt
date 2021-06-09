@@ -1,7 +1,7 @@
 use crate::slist;
 use crate::source;
 use flate2::read::GzDecoder;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use reqwest::{header, Client, Url};
 use std::io::prelude::*;
 use tokio::io::AsyncWriteExt;
@@ -40,7 +40,7 @@ pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
   Ok(debname)
 }
 
-pub fn fetchIndex(source: &slist::Source) -> Result<String, String> {
+pub fn fetchIndex(source: &slist::Source, progress_bar: &ProgressBar) -> Result<String, String> {
   let mut buf: Vec<u8> = vec![];
   let indexuri = source.toIndexUri();
   let _indexuri = indexuri.clone();
@@ -60,13 +60,9 @@ pub fn fetchIndex(source: &slist::Source) -> Result<String, String> {
       }
     };
 
-    let progress_bar = ProgressBar::new(download_size);
-    progress_bar.set_style(
-      ProgressStyle::default_bar()
-        .template("[{bar:40.cyan/blue}] {bytes}/{total_bytes} - {msg}")
-        .progress_chars("#>-"),
-    );
     progress_bar.set_message(_indexuri.clone());
+    progress_bar.set_length(download_size);
+    progress_bar.set_position(0);
 
     // actual request
     let req = client.get(_indexuri.clone());
