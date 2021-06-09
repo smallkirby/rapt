@@ -30,5 +30,7 @@ pub fn build_cli() -> App<'static, 'static> {
       SubCommand::with_name("install")
         .about("install package")
         .arg(Arg::with_name("package").help("package name or .deb file to install").required(true)),
+      SubCommand::with_name("clean")
+        .about("clean archive directory")
     ])
 }

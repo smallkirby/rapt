@@ -28,7 +28,7 @@ pub fn do_update() {
   // fetch index files and get package items.
   println!("Fetching indexes... ");
   let mut fetched_amount = 0;
-  match fetche_indexes_thread(&sources) {
+  match fetch_indexes_thread(&sources) {
     Ok((fetched_sizes, mut items)) => {
       for s in fetched_sizes {
         fetched_amount += s;
@@ -85,7 +85,7 @@ pub fn do_update() {
   }
 }
 
-pub fn fetche_indexes_thread(
+pub fn fetch_indexes_thread(
   sources: &Vec<slist::Source>,
 ) -> Result<(Vec<u64>, Vec<SourcePackage>), String> {
   let mut handles = vec![];

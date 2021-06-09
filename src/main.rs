@@ -2,6 +2,7 @@ use colored::*;
 use simple_logger::SimpleLogger;
 
 pub mod cache;
+pub mod clean;
 mod cli;
 pub mod dpkg;
 pub mod fetcher;
@@ -30,6 +31,7 @@ pub enum Command {
   SEARCH,
   SHOW,
   INSTALL,
+  CLEAN,
   UNKNOWN,
 }
 
@@ -65,6 +67,9 @@ fn main() {
     }
     Command::INSTALL => {
       install::do_install(&opts.package);
+    }
+    Command::CLEAN => {
+      clean::do_clean();
     }
     Command::UNKNOWN => {
       println!("Unknown subcommand");
@@ -106,6 +111,9 @@ pub fn parse_opts(opts: &mut Opts) {
     opts.command = Command::SHOW;
     opts.package = matches.value_of("package").unwrap().to_string();
     log::trace!("package: {}", opts.package);
+  } else if let Some(ref _matches) = matches.subcommand_matches("clean") {
+    log::trace!("subcommand: clean");
+    opts.command = Command::CLEAN;
   } else if let Some(ref matches) = matches.subcommand_matches("install") {
     log::trace!("subcommand: install");
     opts.command = Command::INSTALL;

@@ -14,9 +14,13 @@
 | 🌤 | `rapt search` |
 | 🌤 | `rapt list` |
 | ⛈ | `rapt upgrade` |
+| ⛈ | `rapt dist-upgrade` |
 | ☁ | `rapt install` |
 | ⛈ | `rapt remove` |
+| ⛈ | `rapt autoremove` |
 | ⛈ | `rapt purge` |
+| ☀ | `rapt clean` |
+| ⛈ | `rapt autoclean` |
   
 ### legend
 - ☀️: completed
