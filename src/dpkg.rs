@@ -76,14 +76,15 @@ pub fn check_missing_or_old(
     Err(msg) => return Err(msg),
   };
 
-  let mut package_name = String::new();
-  for c in _package_name.chars() {
-    if c.is_digit(10) {
-      break;
-    } else {
-      package_name.push(c);
-    }
-  }
+  let package_name = String::from(_package_name);
+  //let mut package_name = String::new();
+  //for c in _package_name.chars() {
+  //  if c.is_digit(10) {
+  //    break;
+  //  } else {
+  //    package_name.push(c);
+  //  }
+  //}
 
   for ditem in installed_items {
     let mut dpackage_name = String::new();
