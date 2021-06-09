@@ -101,8 +101,7 @@ pub fn fetche_indexes_thread(
     progress_bar.set_style(progress_style.clone());
 
     let handle = thread::spawn(move || {
-      //println!("Get:{} {}", ix, source.info());
-      let raw_index = match fetcher::fetchIndex(&source, &progress_bar) {
+      let raw_index = match fetcher::fetchIndex(&source, Some(progress_bar)) {
         Ok(_raw_index) => _raw_index,
         Err(msg) => {
           println!("{}", msg);
