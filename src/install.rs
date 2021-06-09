@@ -5,12 +5,13 @@ use crate::source::SourcePackage;
 use colored::*;
 use flate2::read::GzDecoder;
 use glob;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use regex::Regex;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path;
+use std::sync::mpsc;
 use xz2::read::XzDecoder;
 
 pub fn do_install(package: &str) {
@@ -78,7 +79,7 @@ pub fn install_package(package: &SourcePackage) -> Result<(), String> {
       .progress_chars("#>-"),
   );
   let debname = match fetcher::fetch_deb(&package, Some(&progress_bar)) {
-    Ok(_debname) => _debname,
+    Ok(_debname) => _debname.0,
     Err(msg) => return Err(msg),
   };
   println!("fetched {} into {}", package.package, debname);
@@ -135,6 +136,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     &glob::Pattern::new(&_packages.iter().nth(0).unwrap().package).unwrap(),
     true,
   )[0];
+  println!("\nRecursively searching for dependencies: ");
   let missing_old_package_names =
     match dpkg::get_missing_or_old_dependencies_recursive(package, true) {
       Ok(_missing_packages) => _missing_packages,
@@ -161,7 +163,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
       .collect(),
   );
 
-  print!("The following additional packages will be installed: \n  ");
+  print!("\nThe following additional packages will be installed: \n  ");
   for mp in &missing_packages {
     print!("{} ", mp.package);
   }
@@ -171,9 +173,9 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   println!("");
 
   print!("The following NEW packages will be installed: \n  ");
-  print!("{} ", package.package);
+  print!("{} ", package.package.green().bold());
   for mp in &missing_packages {
-    print!("{} ", mp.package);
+    print!("{} ", mp.package.green());
   }
   println!("");
 
@@ -207,21 +209,49 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   //}
 
   // download all missing dependencies
-  for (ix, md) in missing_packages
+  let mut handles = vec![];
+  let (tx, rx) = mpsc::channel();
+  let progress_bars = MultiProgress::new();
+  let progress_style = ProgressStyle::default_bar()
+    .template("Get: [{bar:40.cyan/blue}] {bytes}/{total_bytes} - {msg}")
+    .progress_chars("#>-");
+
+  for (_ix, _md) in missing_packages
     .iter()
     .chain(old_packages.iter())
     .enumerate()
   {
-    print!("Get:{} {} ...", ix, md.package.green());
-    std::io::stdout().flush().unwrap();
-    match fetcher::fetch_deb(&md, None) {
-      Ok(_) => {
-        println!("DONE");
+    let md = _md.clone();
+    let tx = tx.clone();
+    let progress_bar = progress_bars.add(ProgressBar::new(999999999));
+    progress_bar.set_style(progress_style.clone());
+
+    let handle = std::thread::spawn(move || match fetcher::fetch_deb(&md, Some(&progress_bar)) {
+      Ok((_filename, fetched_size)) => {
+        tx.send(Ok(fetched_size)).unwrap();
       }
-      Err(msg) => return Err(msg),
-    }
-    println!("Fetched {} kB in {}s ({} kB/s)", "?", "?", "?");
+      Err(msg) => {
+        tx.send(Err(msg)).unwrap();
+      }
+    });
+    handles.push(handle);
   }
+
+  let mut fetched_amount = 0;
+  progress_bars.join().unwrap();
+  for handle in handles {
+    match rx.recv().unwrap() {
+      Ok(fetched_size) => {
+        fetched_amount += fetched_size;
+      }
+      Err(msg) => {
+        println!("{}", msg);
+        return Err(msg);
+      }
+    }
+    handle.join().unwrap();
+  }
+  println!("Fetched {} kB in ?s (? kB/s)", fetched_amount / 1000);
 
   // install dependencies
   for (_ix, md) in missing_packages

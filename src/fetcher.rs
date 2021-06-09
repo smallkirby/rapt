@@ -8,7 +8,7 @@ use std::io::prelude::*;
 pub fn fetch_deb(
   package: &source::SourcePackage,
   _progress_bar: Option<&ProgressBar>,
-) -> Result<String, String> {
+) -> Result<(String, u32), String> {
   // create archive directory
   if !std::path::Path::new("archive").exists() {
     std::fs::create_dir("archive").unwrap();
@@ -69,7 +69,7 @@ pub fn fetch_deb(
       let rt = tokio::runtime::Runtime::new().unwrap();
       rt.block_on(task).unwrap();
 
-      Ok(debname)
+      Ok((debname, 0))
     }
     None => {
       let res = reqwest::blocking::get(&uri).expect("unknown error while fetching package.");
@@ -82,7 +82,7 @@ pub fn fetch_deb(
       let content = res.bytes().unwrap();
       output.write_all(&content).unwrap();
 
-      Ok(debname)
+      Ok((debname, 0))
     }
   }
 }

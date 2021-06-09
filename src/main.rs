@@ -42,7 +42,7 @@ impl Default for Command {
 fn main() {
   let mut opts = Opts::default();
 
-  println!(" {}", "======== RAPT =======".blue().bold());
+  println!(" {}\n", "======== RAPT =======".blue().bold());
   SimpleLogger::new()
     .with_level(log::LevelFilter::Error)
     .init()

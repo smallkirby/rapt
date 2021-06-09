@@ -4,6 +4,9 @@ use crate::version::*;
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::process::{Command, Stdio};
+use std::sync::mpsc::{self, TryRecvError};
+use std::thread;
+use std::time::Duration;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PackageState {
@@ -246,7 +249,7 @@ fn sub_missing_or_old_dependencies_recursive(
 
 pub fn get_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
-  show_progress: bool,
+  _show_progress: bool,
 ) -> Result<Vec<(String, PackageState)>, String> {
   // first, cache items in dpkg's state
   let items = match read_dpkg_state() {
@@ -254,7 +257,36 @@ pub fn get_missing_or_old_dependencies_recursive(
     Err(msg) => return Err(msg),
   };
   // recursive search
-  sub_missing_or_old_dependencies_recursive(package, &mut vec![], show_progress, Some(items))
+  let (tx, rx) = mpsc::channel();
+  let progress_bar = ProgressBar::new(0);
+  progress_bar.set_style(
+    ProgressStyle::default_bar()
+      .template("{spinner:.blue} [{elapsed_precise}] {bar:70.blue} {msg}")
+      .progress_chars("*@-"),
+  );
+  let _ = std::thread::spawn(move || {
+    let mut counter = 0;
+    loop {
+      if counter % 10 == 0 {
+        counter = 0;
+        progress_bar.inc_length(10);
+        progress_bar.inc(5);
+      }
+      thread::sleep(Duration::from_millis(200));
+      match rx.try_recv() {
+        Ok(_) | Err(TryRecvError::Disconnected) => {
+          progress_bar.finish_with_message("DONE");
+          break;
+        }
+        Err(TryRecvError::Empty) => {}
+      }
+      counter += 1;
+    }
+  });
+  let res = sub_missing_or_old_dependencies_recursive(package, &mut vec![], false, Some(items));
+
+  tx.send(()).unwrap();
+  res
 }
 
 pub fn install_archived_package(package: &SourcePackage) -> Result<(), String> {
