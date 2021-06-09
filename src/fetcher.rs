@@ -1,7 +1,10 @@
 use crate::slist;
 use crate::source;
 use flate2::read::GzDecoder;
+use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::{header, Client, Url};
 use std::io::prelude::*;
+use tokio::io::AsyncWriteExt;
 
 pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
   // create archive directory
@@ -38,18 +41,61 @@ pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
 }
 
 pub fn fetchIndex(source: &slist::Source) -> Result<String, String> {
-  let indexuri = source.toIndexUri();
-  let mut res = reqwest::blocking::get(indexuri).expect("unknown error while fetching index.");
-  if !res.status().is_success() {
-    return Err(format!(
-      "error while fetching index: error code={}",
-      res.status().as_str()
-    ));
-  }
   let mut buf: Vec<u8> = vec![];
-  res
-    .copy_to(&mut buf)
-    .expect("error while copying result into buffer.");
+  let indexuri = source.toIndexUri();
+  let _indexuri = indexuri.clone();
+  let task = async {
+    let client = Client::new();
+    let download_size = {
+      let res = client.head(_indexuri.clone()).send().await.unwrap();
+      if res.status().is_success() {
+        res
+          .headers()
+          .get(header::CONTENT_LENGTH)
+          .and_then(|ct_len| ct_len.to_str().ok())
+          .and_then(|ct_len| ct_len.parse().ok())
+          .unwrap_or(0)
+      } else {
+        return Err("unknown error while fetching index.".to_string());
+      }
+    };
+
+    let progress_bar = ProgressBar::new(download_size);
+    progress_bar.set_style(
+      ProgressStyle::default_bar()
+        .template("[{bar:40.cyan/blue}] {bytes}/{total_bytes} - {msg}")
+        .progress_chars("#>-"),
+    );
+    progress_bar.set_message(_indexuri.clone());
+
+    // actual request
+    let req = client.get(_indexuri.clone());
+    let mut download = req.send().await.unwrap();
+    while let Some(chunk) = download.chunk().await.unwrap() {
+      progress_bar.inc(chunk.len() as u64);
+      tokio::io::AsyncWriteExt::write(&mut buf, &chunk)
+        .await
+        .unwrap();
+    }
+
+    progress_bar.finish();
+    Ok(())
+  };
+
+  let rt = tokio::runtime::Runtime::new().unwrap();
+  rt.block_on(task).unwrap();
+
+  //let mut res = reqwest::blocking::get(indexuri).expect("unknown error while fetching index.");
+  //if !res.status().is_success() {
+  //  return Err(format!(
+  //    "error while fetching index: error code={}",
+  //    res.status().as_str()
+  //  ));
+  //}
+  //let mut buf: Vec<u8> = vec![];
+  //res
+  //  .copy_to(&mut buf)
+  //  .expect("error while copying result into buffer.");
 
   let mut d = GzDecoder::new(&buf[..]);
   let mut s = String::new();
