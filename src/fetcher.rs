@@ -5,13 +5,16 @@ use indicatif::ProgressBar;
 use reqwest::{header, Client};
 use std::io::prelude::*;
 
-pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
+pub fn fetch_deb(
+  package: &source::SourcePackage,
+  _progress_bar: Option<&ProgressBar>,
+) -> Result<String, String> {
   // create archive directory
   if !std::path::Path::new("archive").exists() {
     std::fs::create_dir("archive").unwrap();
   }
 
-  /* XXX must check archive directory first for cache */
+  /* XXX must check archive directory first for cache HERE */
 
   let uri = match package.to_pool_uri() {
     Ok(_uri) => _uri,
@@ -23,20 +26,65 @@ pub fn fetch_deb(package: &source::SourcePackage) -> Result<String, String> {
     }
   };
 
-  let res = reqwest::blocking::get(&uri).expect("unknown error while fetching package.");
-  if !res.status().is_success() {
-    return Err(format!(
-      "error while fetching index: error code={}",
-      res.status().as_str()
-    ));
-  }
   let _a = uri.rfind('/').unwrap();
   let debname = String::from(&uri[_a + 1..]);
-  let mut output = std::fs::File::create(format!("archive/{}", debname)).unwrap();
-  let content = res.bytes().unwrap();
-  output.write_all(&content).unwrap();
+  let mut output = std::fs::File::create(format!("archive/{}", &debname)).unwrap();
+  match _progress_bar {
+    Some(progress_bar) => {
+      let task = async {
+        let client = Client::new();
+        let download_size = {
+          let res = client.head(uri.clone()).send().await.unwrap();
+          if res.status().is_success() {
+            res
+              .headers()
+              .get(header::CONTENT_LENGTH)
+              .and_then(|ct_len| ct_len.to_str().ok())
+              .and_then(|ct_len| ct_len.parse().ok())
+              .unwrap_or(0)
+          } else {
+            return Err("unknown error while deb.".to_string());
+          }
+        };
+        progress_bar.set_message(uri.clone());
+        progress_bar.set_length(download_size);
+        progress_bar.set_position(0);
 
-  Ok(debname)
+        // actual request
+        let req = client.get(uri.clone());
+        let mut download = req.send().await.unwrap();
+        let mut content: Vec<u8> = vec![];
+        while let Some(chunk) = download.chunk().await.unwrap() {
+          progress_bar.inc(chunk.len() as u64);
+          tokio::io::AsyncWriteExt::write(&mut content, &chunk)
+            .await
+            .unwrap();
+        }
+        output.write_all(&content).unwrap();
+
+        progress_bar.finish();
+        Ok(())
+      };
+
+      let rt = tokio::runtime::Runtime::new().unwrap();
+      rt.block_on(task).unwrap();
+
+      Ok(debname)
+    }
+    None => {
+      let res = reqwest::blocking::get(&uri).expect("unknown error while fetching package.");
+      if !res.status().is_success() {
+        return Err(format!(
+          "error while fetching index: error code={}",
+          res.status().as_str()
+        ));
+      }
+      let content = res.bytes().unwrap();
+      output.write_all(&content).unwrap();
+
+      Ok(debname)
+    }
+  }
 }
 
 pub fn fetch_index(
@@ -131,6 +179,6 @@ pub mod test {
       filename: "pool/main/v/vim/vim_8.1.2269-1ubuntu5_amd64.deb".to_string(),
       ..Default::default()
     };
-    super::fetch_deb(&p).unwrap();
+    super::fetch_deb(&p, None).unwrap();
   }
 }

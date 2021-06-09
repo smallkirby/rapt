@@ -5,6 +5,7 @@ use crate::source::SourcePackage;
 use colored::*;
 use flate2::read::GzDecoder;
 use glob;
+use indicatif::{ProgressBar, ProgressStyle};
 use regex::Regex;
 use std::fs::File;
 use std::io;
@@ -28,6 +29,7 @@ pub fn do_install(package: &str) {
       }
     }
   } else {
+    // search package information from cache
     let _target_package =
       &cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true);
     if _target_package.len() == 0 {
@@ -37,10 +39,15 @@ pub fn do_install(package: &str) {
       );
       return;
     }
+    // check the package status
     let target_package = &_target_package[0];
+    let progress_bar = ProgressBar::new(0);
+    progress_bar
+      .set_style(ProgressStyle::default_bar().template("Checking dependencies: {bar:40} {msg}"));
     match dpkg::check_missing_or_old(
       &target_package.package,
       &Some(target_package.version.clone()),
+      Some(&progress_bar),
     )
     .unwrap()
     {
@@ -63,7 +70,13 @@ pub fn do_install(package: &str) {
 
 pub fn install_package(package: &SourcePackage) -> Result<(), String> {
   // install target package's deb
-  let debname = match fetcher::fetch_deb(&package) {
+  let progress_bar = ProgressBar::new(0);
+  progress_bar.set_style(
+    ProgressStyle::default_bar()
+      .template("Get: [{bar:40.cyan/blue}] {bytes}/{total_bytes} - {msg}")
+      .progress_chars("#>-"),
+  );
+  let debname = match fetcher::fetch_deb(&package, Some(&progress_bar)) {
     Ok(_debname) => _debname,
     Err(msg) => return Err(msg),
   };
@@ -112,7 +125,6 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
       control_file_name
     ));
   }
-
   // read package info from control
   let control = std::fs::read_to_string("tmp/control").unwrap();
   let _packages = SourcePackage::from_row(&control).unwrap();
@@ -122,10 +134,11 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     &glob::Pattern::new(&_packages.iter().nth(0).unwrap().package).unwrap(),
     true,
   )[0];
-  let missing_old_package_names = match dpkg::get_missing_or_old_dependencies_recursive(package) {
-    Ok(_missing_packages) => _missing_packages,
-    Err(msg) => return Err(msg),
-  };
+  let missing_old_package_names =
+    match dpkg::get_missing_or_old_dependencies_recursive(package, true) {
+      Ok(_missing_packages) => _missing_packages,
+      Err(msg) => return Err(msg),
+    };
   let missing_package_names = missing_old_package_names
     .iter()
     .filter(|c| c.1 == dpkg::PackageState::MISSING)
@@ -200,7 +213,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   {
     print!("Get:{} {} ...", ix, md.package.green());
     std::io::stdout().flush().unwrap();
-    match fetcher::fetch_deb(&md) {
+    match fetcher::fetch_deb(&md, None) {
       Ok(_) => {
         println!("DONE");
       }
@@ -242,9 +255,12 @@ pub mod test {
     let package = "vim-common";
     let items =
       crate::cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true);
-    let missing = crate::dpkg::get_missing_or_old_dependencies(&items[0]);
+    let missing = crate::dpkg::get_missing_or_old_dependencies(&items[0], true);
     println!("{:?}", missing);
-    println!("{:?}", crate::dpkg::check_missing_or_old("xxd", &None));
+    println!(
+      "{:?}",
+      crate::dpkg::check_missing_or_old("xxd", &None, None)
+    );
     panic!("");
   }
 }

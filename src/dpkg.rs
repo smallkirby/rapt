@@ -2,7 +2,7 @@ use crate::cache;
 use crate::source::SourcePackage;
 use crate::version::*;
 use colored::*;
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::process::{Command, Stdio};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -66,19 +66,41 @@ pub fn check_upgradable(
   Ok(upgradable_items)
 }
 
-// XXX bug: 'libperl5.18' is regarded as missing when only 'libperl5.30' is installed.
 pub fn check_missing_or_old(
   _package_name: &str,
   package_version: &Option<String>,
+  _progress_bar: Option<&ProgressBar>,
 ) -> Result<PackageState, String> {
   let installed_items = match read_dpkg_state() {
     Ok(_installed_items) => _installed_items,
     Err(msg) => return Err(msg),
   };
+  let finalize_progress_bar = {
+    || {
+      if _progress_bar.is_some() {
+        _progress_bar.unwrap().finish_with_message("DONE");
+      }
+    }
+  };
+  if _progress_bar.is_some() {
+    _progress_bar
+      .unwrap()
+      .set_length(installed_items.len() as u64);
+    _progress_bar.unwrap().set_position(0);
+  }
 
   let package_name = String::from(_package_name);
 
-  for ditem in installed_items {
+  let total_installed_item = installed_items.len();
+  for (ix, ditem) in installed_items.iter().enumerate() {
+    if _progress_bar.is_some() {
+      _progress_bar.unwrap().set_message(format!(
+        "{:>3}% : {}",
+        (ix as f32 / total_installed_item as f32) * 100 as f32,
+        ditem.package
+      ));
+      _progress_bar.unwrap().inc(1);
+    }
     let mut dpackage_name = String::new();
     for c in ditem.package.chars() {
       if c.is_digit(10) {
@@ -92,28 +114,39 @@ pub fn check_missing_or_old(
         Some(v) => {
           let res_cmp_version = comp_version(&ditem.version, &v);
           if res_cmp_version >= 0 {
+            finalize_progress_bar();
             return Ok(PackageState::UPTODATE);
           } else {
+            finalize_progress_bar();
             return Ok(PackageState::OLD);
           }
         }
         None => {
+          finalize_progress_bar();
           return Ok(PackageState::UPTODATE); // if required version is missing, regard it as up-to-date
         }
       }
     }
   }
 
+  finalize_progress_bar();
   Ok(PackageState::MISSING)
 }
 
 pub fn get_missing_or_old_dependencies(
   package: &SourcePackage,
+  show_progress: bool,
 ) -> Result<Vec<(String, PackageState)>, String> {
   let mut ret_items = vec![];
 
   for (dep_package, dep_version) in &package.depends {
-    match check_missing_or_old(dep_package, dep_version) {
+    let tmp = ProgressBar::new(0);
+    tmp.set_style(
+      ProgressStyle::default_bar().template(&format!("Check deps {}: {{msg}}", dep_package)),
+    );
+    let progress_bar = if show_progress { Some(&tmp) } else { None };
+
+    match check_missing_or_old(dep_package, dep_version, progress_bar) {
       Ok(is_missing) => match is_missing {
         PackageState::MISSING => ret_items.push((dep_package.clone(), PackageState::MISSING)),
         PackageState::OLD => ret_items.push((dep_package.clone(), PackageState::OLD)),
@@ -129,11 +162,13 @@ pub fn get_missing_or_old_dependencies(
 fn sub_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
   acc: &Vec<(String, PackageState)>,
+  //progress_style: Option<&ProgressStyle>,
+  show_progress: bool,
 ) -> Result<Vec<(String, PackageState)>, String> {
   let mut ret_items: Vec<(String, PackageState)> = acc.clone();
 
   // search missing/old dependencies for @package
-  let mut missing_package_names = match get_missing_or_old_dependencies(package) {
+  let mut missing_package_names = match get_missing_or_old_dependencies(package, show_progress) {
     Ok(_missing_package_name) => _missing_package_name,
     Err(msg) => return Err(msg),
   };
@@ -169,7 +204,7 @@ fn sub_missing_or_old_dependencies_recursive(
   ret_items.append(&mut missing_package_names);
   // recursively search missing/old dependencies
   for p in missing_packages {
-    match sub_missing_or_old_dependencies_recursive(&p, acc) {
+    match sub_missing_or_old_dependencies_recursive(&p, acc, show_progress) {
       Ok(mut names) => {
         ret_items.append(&mut names);
       }
@@ -182,8 +217,9 @@ fn sub_missing_or_old_dependencies_recursive(
 
 pub fn get_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
+  show_progress: bool,
 ) -> Result<Vec<(String, PackageState)>, String> {
-  sub_missing_or_old_dependencies_recursive(package, &mut vec![])
+  sub_missing_or_old_dependencies_recursive(package, &mut vec![], show_progress)
 }
 
 pub fn install_archived_package(package: &SourcePackage) -> Result<(), String> {
