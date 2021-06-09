@@ -161,12 +161,10 @@ pub fn get_missing_or_old_dependencies(
 
 fn sub_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
-  acc: &Vec<(String, PackageState)>,
+  acc: &mut Vec<(String, PackageState)>,
   //progress_style: Option<&ProgressStyle>,
   show_progress: bool,
 ) -> Result<Vec<(String, PackageState)>, String> {
-  let mut ret_items: Vec<(String, PackageState)> = acc.clone();
-
   // search missing/old dependencies for @package
   let mut missing_package_names = match get_missing_or_old_dependencies(package, show_progress) {
     Ok(_missing_package_name) => _missing_package_name,
@@ -174,12 +172,33 @@ fn sub_missing_or_old_dependencies_recursive(
   };
 
   // get instances of missing/old packages
-  let missing_packages = cache::search_cache_with_names(
+  let mut missing_packages = cache::search_cache_with_names(
     &missing_package_names
       .iter()
       .map(|p| p.0.clone())
       .collect::<Vec<_>>(),
   );
+
+  // remove duplicated packages
+  missing_packages = missing_packages
+    .into_iter()
+    .filter(|item| {
+      acc
+        .iter()
+        .find(|a| a.0 == item.package || item.package == package.package)
+        .is_none()
+    })
+    .collect::<Vec<_>>();
+  missing_package_names = missing_package_names
+    .into_iter()
+    .filter(|name| {
+      acc
+        .iter()
+        .find(|a| a.0 == name.0 || name.0 == package.package)
+        .is_none()
+    })
+    .collect::<Vec<_>>();
+
   // return error if some dependency is not in cache.
   if missing_packages.len() != missing_package_names.len() {
     let mut diffs = String::new();
@@ -201,18 +220,22 @@ fn sub_missing_or_old_dependencies_recursive(
     ));
   }
 
-  ret_items.append(&mut missing_package_names);
+  acc.append(&mut missing_package_names);
   // recursively search missing/old dependencies
   for p in missing_packages {
     match sub_missing_or_old_dependencies_recursive(&p, acc, show_progress) {
       Ok(mut names) => {
-        ret_items.append(&mut names);
+        names = names
+          .into_iter()
+          .filter(|item| acc.iter().find(|a| a.0 == item.0).is_none())
+          .collect::<Vec<_>>();
+        acc.append(&mut names);
       }
       Err(msg) => return Err(msg),
     }
   }
 
-  Ok(ret_items)
+  Ok(acc.to_vec())
 }
 
 pub fn get_missing_or_old_dependencies_recursive(
