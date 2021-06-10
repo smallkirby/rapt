@@ -457,62 +457,55 @@ pub fn parse_depends(_dep: &str) -> Result<(String, Option<String>), String> {
   }
 }
 
+pub fn choose_package(p1: &SourcePackage, p2: &SourcePackage) -> SourcePackage {
+  // check version and priority only
+  if p1.priority > p2.priority {
+    p1.clone()
+  } else if p1.priority < p2.priority {
+    p2.clone()
+  } else {
+    let cmp_res = comp_version(&p1.version, &p2.version);
+    if cmp_res > 0 {
+      p1.clone()
+    } else if cmp_res < 0 {
+      p2.clone()
+    } else {
+      p1.clone() // completely same
+    }
+  }
+}
+
 pub fn resolve_duplication(
   sources: &Vec<SourcePackage>,
   _progress_bar: Option<&ProgressBar>,
 ) -> Result<Vec<SourcePackage>, String> {
-  let mut resolved: Vec<SourcePackage> = vec![];
+  let mut hashmap: HashMap<String, SourcePackage> = HashMap::new();
+
   if _progress_bar.is_some() {
     _progress_bar.unwrap().set_length(sources.len() as u64);
     _progress_bar.unwrap().set_position(0);
   }
-  for source in sources {
+  for item in sources {
     if _progress_bar.is_some() {
-      _progress_bar.unwrap().set_message(source.package.clone());
+      _progress_bar.unwrap().set_message(item.package.clone());
       _progress_bar.unwrap().inc(1);
     }
-    let dups_num = resolved
-      .iter()
-      .filter(|&item| item.package == source.package)
-      .collect::<Vec<_>>()
-      .len();
-    if dups_num == 0 {
-      resolved.push(source.clone());
-    } else if dups_num != 1 {
-      return Err("something went wrong while resolving duplication.".to_string());
+
+    if hashmap.contains_key(&item.package) {
+      hashmap.insert(
+        item.package.to_owned(),
+        choose_package(&item, &hashmap.get(&item.package).unwrap()),
+      );
     } else {
-      let dup = resolved
-        .iter()
-        .find(|item| item.package == source.package)
-        .unwrap();
-      // check version and priority only
-      if source.priority > dup.priority {
-        let ix = resolved
-          .iter()
-          .position(|x| x.package == dup.package)
-          .unwrap();
-        resolved.push(source.clone());
-        resolved.remove(ix);
-      } else if source.priority < dup.priority {
-        continue;
-      } else {
-        let cmp_res = comp_version(&dup.version, &source.version);
-        if cmp_res < 0 {
-          let ix = resolved
-            .iter()
-            .position(|x| x.package == dup.package)
-            .unwrap();
-          resolved.push(source.clone());
-          resolved.remove(ix);
-        }
-      }
+      hashmap.insert(item.package.to_owned(), item.to_owned());
     }
   }
 
   if _progress_bar.is_some() {
     _progress_bar.unwrap().finish_with_message("DONE");
   }
-  Ok(resolved)
+
+  Ok(hashmap.values().map(|i| i.to_owned()).collect::<Vec<_>>())
 }
 
 #[cfg(test)]
