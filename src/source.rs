@@ -449,7 +449,7 @@ pub fn parse_depends(_dep: &str) -> Result<(String, Option<String>), String> {
     // XXX assumes version format is like: (>=2.32)
     // 0: package, 1: ( and {>=<}, 2: version and )
     let parts = dep.split(" ").collect::<Vec<_>>();
-    let pkg = parts[0].trim();
+    let pkg = parts[0].trim().split(":").collect::<Vec<_>>()[0];
     let version = &parts[2][..parts[2].len() - 1];
     Ok((pkg.trim().to_string(), Some(version.trim().to_string())))
   } else {

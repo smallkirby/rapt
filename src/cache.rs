@@ -73,7 +73,7 @@ pub fn search_cache_with_names(
 ) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
   for name in names {
-    let name_glob = glob::Pattern::new(&name).unwrap();
+    let name_glob = glob::Pattern::new(name.split(":").collect::<Vec<_>>()[0]).unwrap();
     let mut founds = search_cache_with_name_glob(&name_glob, true, cache.clone());
     ret_items.append(&mut founds);
   }
