@@ -12,7 +12,7 @@ pub fn do_show(package: &str) {
       return;
     }
   };
-  let found_items = cache::search_cache_with_name_glob(&package_glob, false);
+  let found_items = cache::search_cache_with_name_glob(&package_glob, false, None);
   list_packages(&found_items);
 }
 

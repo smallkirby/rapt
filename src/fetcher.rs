@@ -26,6 +26,7 @@ pub fn fetch_deb(
     }
   };
 
+  println!("{:?}", uri);
   let _a = uri.rfind('/').unwrap();
   let debname = String::from(&uri[_a + 1..]);
   let mut output = std::fs::File::create(format!("archive/{}", &debname)).unwrap();

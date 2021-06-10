@@ -1,9 +1,11 @@
 use crate::cache;
+use crate::cache::get_cached_items;
 use crate::source::SourcePackage;
 use crate::version::*;
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::process::{Command, Stdio};
+use std::rc::Rc;
 use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
@@ -70,11 +72,11 @@ pub fn check_missing_or_old(
   _package_name: &str,
   package_version: &Option<String>,
   _progress_bar: Option<&ProgressBar>,
-  cacheitems: Option<Vec<SourcePackage>>,
+  cacheitems: Option<Rc<Vec<SourcePackage>>>,
 ) -> Result<PackageState, String> {
   let installed_items = match cacheitems {
     Some(_cacheitems) => _cacheitems,
-    None => read_dpkg_state()?,
+    None => Rc::new(get_cached_items()),
   };
   let finalize_progress_bar = {
     || {
@@ -137,7 +139,7 @@ pub fn check_missing_or_old(
 pub fn get_missing_or_old_dependencies(
   package: &SourcePackage,
   show_progress: bool,
-  cacheitems: Option<Vec<SourcePackage>>,
+  cacheitems: Option<Rc<Vec<SourcePackage>>>,
 ) -> Result<Vec<(String, PackageState)>, String> {
   let mut ret_items = vec![];
 
@@ -165,7 +167,7 @@ fn sub_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
   acc: &mut Vec<(String, PackageState)>,
   show_progress: bool,
-  cacheitems: Option<Vec<SourcePackage>>,
+  cacheitems: Option<Rc<Vec<SourcePackage>>>,
 ) -> Result<Vec<(String, PackageState)>, String> {
   // search missing/old dependencies for @package
   let mut missing_package_names =
@@ -177,6 +179,7 @@ fn sub_missing_or_old_dependencies_recursive(
       .iter()
       .map(|p| p.0.clone())
       .collect::<Vec<_>>(),
+    cacheitems.clone(),
   );
 
   // remove duplicated packages
@@ -201,22 +204,22 @@ fn sub_missing_or_old_dependencies_recursive(
 
   // return error if some dependency is not in cache.
   if missing_packages.len() != missing_package_names.len() {
-    let mut diffs = String::new();
-    for n in missing_package_names {
-      let mut found = false;
-      for p in &missing_packages {
-        if p.package == n.0 {
-          found = true;
-          break;
-        }
-      }
-      if !found {
-        diffs.push_str(&format!("{} ", n.0));
-      }
-    }
+    let not_found_packages = missing_package_names
+      .iter()
+      .filter(|name| {
+        missing_packages
+          .iter()
+          .find(|mp| mp.package == name.0)
+          .is_none()
+      })
+      .collect::<Vec<_>>();
     return Err(format!(
       "Dependency packages not found in cache files: {}",
-      diffs
+      not_found_packages
+        .iter()
+        .map(|n| n.0.clone())
+        .collect::<Vec<_>>()
+        .join(", ")
     ));
   }
 
@@ -241,9 +244,14 @@ fn sub_missing_or_old_dependencies_recursive(
 pub fn get_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
   _show_progress: bool,
+  cache: Option<Rc<Vec<SourcePackage>>>,
 ) -> Result<Vec<(String, PackageState)>, String> {
   // first, cache items in dpkg's state
-  let items = read_dpkg_state()?;
+  let items = match cache {
+    Some(_cache) => _cache,
+    None => Rc::new(get_cached_items()),
+  };
+
   // recursive search
   let (tx, rx) = mpsc::channel();
   let progress_bar = ProgressBar::new(0);

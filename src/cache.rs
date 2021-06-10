@@ -5,6 +5,7 @@ use glob::Pattern;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
+use std::rc::Rc;
 
 pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
   match glob::glob("lists/*") {
@@ -66,21 +67,33 @@ pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
   return Err(());
 }
 
-pub fn search_cache_with_names(names: &Vec<String>) -> Vec<SourcePackage> {
+pub fn search_cache_with_names(
+  names: &Vec<String>,
+  cache: Option<Rc<Vec<SourcePackage>>>,
+) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
   for name in names {
     let name_glob = glob::Pattern::new(&name).unwrap();
-    let mut founds = search_cache_with_name_glob(&name_glob, true);
+    let mut founds = search_cache_with_name_glob(&name_glob, true, cache.clone());
     ret_items.append(&mut founds);
   }
 
   ret_items
 }
 
-pub fn search_cache_with_name_glob(glob: &Pattern, case_sensitive: bool) -> Vec<SourcePackage> {
+// @cache should be resolved in duplication.
+pub fn search_cache_with_name_glob(
+  glob: &Pattern,
+  case_sensitive: bool,
+  cache: Option<Rc<Vec<SourcePackage>>>,
+) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
-  let cached_items = get_cached_items();
-  for item in cached_items {
+  let cached_items = match cache {
+    Some(_cache) => _cache,
+    None => Rc::new(source::resolve_duplication(&get_cached_items(), None).unwrap()),
+  };
+
+  for item in cached_items.as_ref() {
     if case_sensitive {
       if glob.matches(&item.package) {
         ret_items.push(item.clone());
