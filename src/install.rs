@@ -63,7 +63,7 @@ pub fn do_install(package: &str) {
       &target_package.package,
       &Some(target_package.version.clone()),
       Some(&progress_bar),
-      Some(cache.clone()),
+      None,
     )
     .unwrap()
     {

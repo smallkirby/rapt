@@ -72,11 +72,11 @@ pub fn check_missing_or_old(
   _package_name: &str,
   package_version: &Option<String>,
   _progress_bar: Option<&ProgressBar>,
-  cacheitems: Option<Rc<Vec<SourcePackage>>>,
+  dpkg_cache: Option<Rc<Vec<SourcePackage>>>,
 ) -> Result<PackageState, String> {
-  let installed_items = match cacheitems {
+  let installed_items = match dpkg_cache {
     Some(_cacheitems) => _cacheitems,
-    None => Rc::new(get_cached_items()),
+    None => Rc::new(read_dpkg_state()?),
   };
   let finalize_progress_bar = {
     || {
