@@ -30,10 +30,7 @@ pub fn check_upgradable(
 ) -> Result<Vec<SourcePackage>, String> {
   let mut upgradable_items = vec![];
 
-  let dpkg_items = match read_dpkg_state() {
-    Ok(_dpkg_items) => _dpkg_items,
-    Err(msg) => return Err(msg),
-  };
+  let dpkg_items = read_dpkg_state()?;
   if _progress_bar.is_some() {
     _progress_bar.unwrap().set_length(dpkg_items.len() as u64);
     _progress_bar.unwrap().set_position(0);
@@ -77,10 +74,7 @@ pub fn check_missing_or_old(
 ) -> Result<PackageState, String> {
   let installed_items = match cacheitems {
     Some(_cacheitems) => _cacheitems,
-    None => match read_dpkg_state() {
-      Ok(_installed_items) => _installed_items,
-      Err(msg) => return Err(msg),
-    },
+    None => read_dpkg_state()?,
   };
   let finalize_progress_bar = {
     || {
@@ -175,10 +169,7 @@ fn sub_missing_or_old_dependencies_recursive(
 ) -> Result<Vec<(String, PackageState)>, String> {
   // search missing/old dependencies for @package
   let mut missing_package_names =
-    match get_missing_or_old_dependencies(package, show_progress, cacheitems.clone()) {
-      Ok(_missing_package_name) => _missing_package_name,
-      Err(msg) => return Err(msg),
-    };
+    get_missing_or_old_dependencies(package, show_progress, cacheitems.clone())?;
 
   // get instances of missing/old packages
   let mut missing_packages = cache::search_cache_with_names(
@@ -252,10 +243,7 @@ pub fn get_missing_or_old_dependencies_recursive(
   _show_progress: bool,
 ) -> Result<Vec<(String, PackageState)>, String> {
   // first, cache items in dpkg's state
-  let items = match read_dpkg_state() {
-    Ok(_items) => _items,
-    Err(msg) => return Err(msg),
-  };
+  let items = read_dpkg_state()?;
   // recursive search
   let (tx, rx) = mpsc::channel();
   let progress_bar = ProgressBar::new(0);

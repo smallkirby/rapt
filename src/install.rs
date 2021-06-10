@@ -137,11 +137,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     true,
   )[0];
   println!("\nRecursively searching for dependencies: ");
-  let missing_old_package_names =
-    match dpkg::get_missing_or_old_dependencies_recursive(package, true) {
-      Ok(_missing_packages) => _missing_packages,
-      Err(msg) => return Err(msg),
-    };
+  let missing_old_package_names = dpkg::get_missing_or_old_dependencies_recursive(package, true)?;
   let missing_package_names = missing_old_package_names
     .iter()
     .filter(|c| c.1 == dpkg::PackageState::MISSING)
@@ -261,18 +257,12 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     .enumerate()
   {
     println!("installing {} ...", md.package.green());
-    match dpkg::install_archived_package(&md) {
-      Ok(()) => {}
-      Err(msg) => return Err(msg),
-    }
+    dpkg::install_archived_package(&md)?;
   }
 
   // install target
   println!("installing {} ...", package.package.green().bold());
-  match dpkg::install_archived_package(&package) {
-    Ok(()) => {}
-    Err(msg) => return Err(msg),
-  }
+  dpkg::install_archived_package(&package)?;
 
   println!("{}", "Install complete.".yellow().bold());
 
