@@ -37,8 +37,6 @@ pub fn do_update() {
   // fetch index files and get package items.
   println!("Fetching indexes... ");
 
-  std::thread::sleep(std::time::Duration::from_millis(999999));
-
   let mut fetched_amount = 0;
   match fetch_indexes_thread(&sources) {
     Ok((fetched_sizes, mut items)) => {

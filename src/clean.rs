@@ -8,6 +8,9 @@ pub fn do_clean() {
       for entry in paths {
         match entry {
           Ok(path) => {
+            if path.is_dir() {
+              continue;
+            }
             sum_debs += 1;
             let filename = path.file_name().unwrap().to_str().unwrap().to_string();
             match std::fs::remove_file(path) {
