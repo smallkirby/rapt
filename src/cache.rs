@@ -22,7 +22,7 @@ pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
                 return Err(());
               }
             };
-            match source::SourcePackage::from_row(&raw_cache) {
+            match source::SourcePackage::from_raw(&raw_cache) {
               Ok(_items) => {
                 if _items
                   .iter()
@@ -154,7 +154,7 @@ pub fn get_cached_items() -> Vec<SourcePackage> {
                 return vec![];
               }
             };
-            match source::SourcePackage::from_row(&raw_cache) {
+            match source::SourcePackage::from_raw(&raw_cache) {
               Ok(mut _items) => ret_items.append(&mut _items),
               Err(msg) => {
                 lock.unlock().unwrap();

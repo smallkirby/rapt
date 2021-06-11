@@ -119,7 +119,7 @@ impl SourcePackage {
     Ok(puri)
   }
 
-  pub fn from_row(file: &str) -> Result<Vec<Self>, String> {
+  pub fn from_raw(file: &str) -> Result<Vec<Self>, String> {
     let mut items = vec![];
     let mut item = SourcePackage::default();
     let lines = file.split("\n").collect::<Vec<_>>();
@@ -654,7 +654,7 @@ pub mod test {
   #[test]
   fn test_package_source_from_row() {
     let sample = std::fs::read_to_string("test/sample-index").unwrap();
-    let psources = super::SourcePackage::from_row(&sample).unwrap();
+    let psources = super::SourcePackage::from_raw(&sample).unwrap();
     let dpkg = &psources[0];
     assert_eq!(psources.len(), 3);
     assert_eq!(dpkg.package, "dpkg");
@@ -719,7 +719,7 @@ pub mod test {
   #[test]
   fn test_package_resolve_duplication() {
     let sample = std::fs::read_to_string("test/sample-duplicated-index").unwrap();
-    let psources = super::SourcePackage::from_row(&sample).unwrap();
+    let psources = super::SourcePackage::from_raw(&sample).unwrap();
     assert_eq!(psources.len(), 3);
     let resolved = super::resolve_duplication(&psources, None).unwrap();
     assert_eq!(resolved.len(), 1);
@@ -746,7 +746,7 @@ pub mod test {
     use crate::source::*;
     let sample_stat_str = std::fs::read_to_string("test/sample-dpkg-status").unwrap();
     //let items = SourcePackage::from_row(&sample_stat_str).unwrap();
-    let items = match SourcePackage::from_row(&sample_stat_str) {
+    let items = match SourcePackage::from_raw(&sample_stat_str) {
       Ok(a) => a,
       Err(msg) => {
         println!("{}", msg);

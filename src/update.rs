@@ -127,7 +127,7 @@ pub fn fetch_indexes_thread(
         }
       }
       let fetched_size = raw_index.len() as u64;
-      match source::SourcePackage::from_row(&raw_index) {
+      match source::SourcePackage::from_raw(&raw_index) {
         Ok(mut _items) => {
           tx.send(Ok((fetched_size, _items))).unwrap();
         }

@@ -134,7 +134,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
 
   // read package info from control
   let control = std::fs::read_to_string("tmp/control").unwrap();
-  let _packages = SourcePackage::from_row(&control).unwrap();
+  let _packages = SourcePackage::from_raw(&control).unwrap();
 
   // find missing/old dependencies
   let package = &cache::search_cache_with_name_glob(
