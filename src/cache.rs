@@ -1,11 +1,11 @@
 use crate::slist;
 use crate::source;
 use crate::source::SourcePackage;
+use crate::source::CACHE;
 use glob::Pattern;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
-use std::rc::Rc;
 
 pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
   match glob::glob("lists/*") {
@@ -67,14 +67,11 @@ pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
   return Err(());
 }
 
-pub fn search_cache_with_names(
-  names: &Vec<String>,
-  cache: Option<Rc<Vec<SourcePackage>>>,
-) -> Vec<SourcePackage> {
+pub fn search_cache_with_names(names: &Vec<String>) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
   for name in names {
     let name_glob = glob::Pattern::new(name.split(":").collect::<Vec<_>>()[0]).unwrap();
-    let mut founds = search_cache_with_name_glob(&name_glob, true, cache.clone());
+    let mut founds = search_cache_with_name_glob(&name_glob, true);
     ret_items.append(&mut founds);
   }
 
@@ -82,18 +79,11 @@ pub fn search_cache_with_names(
 }
 
 // @cache should be resolved in duplication.
-pub fn search_cache_with_name_glob(
-  glob: &Pattern,
-  case_sensitive: bool,
-  cache: Option<Rc<Vec<SourcePackage>>>,
-) -> Vec<SourcePackage> {
+pub fn search_cache_with_name_glob(glob: &Pattern, case_sensitive: bool) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
-  let cached_items = match cache {
-    Some(_cache) => _cache,
-    None => Rc::new(source::resolve_duplication(&get_cached_items(), None).unwrap()),
-  };
+  let cached_items = &*CACHE;
 
-  for item in cached_items.as_ref() {
+  for item in cached_items {
     if case_sensitive {
       if glob.matches(&item.package) {
         ret_items.push(item.clone());
@@ -141,6 +131,12 @@ pub fn get_cached_items() -> Vec<SourcePackage> {
       for entry in paths {
         match entry {
           Ok(path) => {
+            if path.is_dir() {
+              continue;
+            }
+            if path.file_name().unwrap() == "lock" {
+              continue;
+            }
             let raw_cache = match std::fs::read_to_string(path) {
               Ok(_raw_cache) => _raw_cache,
               Err(msg) => {

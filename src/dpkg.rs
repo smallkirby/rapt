@@ -1,5 +1,4 @@
 use crate::cache;
-use crate::cache::get_cached_items;
 use crate::source::SourcePackage;
 use crate::version::*;
 use colored::*;
@@ -139,7 +138,6 @@ pub fn check_missing_or_old(
 pub fn get_missing_or_old_dependencies(
   package: &SourcePackage,
   show_progress: bool,
-  cacheitems: Option<Rc<Vec<SourcePackage>>>,
 ) -> Result<Vec<(String, PackageState)>, String> {
   let mut ret_items = vec![];
 
@@ -150,7 +148,7 @@ pub fn get_missing_or_old_dependencies(
     );
     let progress_bar = if show_progress { Some(&tmp) } else { None };
 
-    match check_missing_or_old(dep_package, dep_version, progress_bar, cacheitems.clone()) {
+    match check_missing_or_old(dep_package, dep_version, progress_bar, None) {
       Ok(is_missing) => match is_missing {
         PackageState::MISSING => ret_items.push((dep_package.clone(), PackageState::MISSING)),
         PackageState::OLD => ret_items.push((dep_package.clone(), PackageState::OLD)),
@@ -167,11 +165,9 @@ fn sub_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
   acc: &mut Vec<(String, PackageState)>,
   show_progress: bool,
-  cacheitems: Option<Rc<Vec<SourcePackage>>>,
 ) -> Result<Vec<(String, PackageState)>, String> {
   // search missing/old dependencies for @package
-  let mut missing_package_names =
-    get_missing_or_old_dependencies(package, show_progress, cacheitems.clone())?;
+  let mut missing_package_names = get_missing_or_old_dependencies(package, show_progress)?;
 
   // get instances of missing/old packages
   let mut missing_packages = cache::search_cache_with_names(
@@ -179,7 +175,6 @@ fn sub_missing_or_old_dependencies_recursive(
       .iter()
       .map(|p| p.0.clone())
       .collect::<Vec<_>>(),
-    cacheitems.clone(),
   );
 
   // remove duplicated packages
@@ -226,7 +221,7 @@ fn sub_missing_or_old_dependencies_recursive(
   acc.append(&mut missing_package_names);
   // recursively search missing/old dependencies
   for p in missing_packages {
-    match sub_missing_or_old_dependencies_recursive(&p, acc, show_progress, cacheitems.clone()) {
+    match sub_missing_or_old_dependencies_recursive(&p, acc, show_progress) {
       Ok(mut names) => {
         names = names
           .into_iter()
@@ -244,14 +239,7 @@ fn sub_missing_or_old_dependencies_recursive(
 pub fn get_missing_or_old_dependencies_recursive(
   package: &SourcePackage,
   _show_progress: bool,
-  cache: Option<Rc<Vec<SourcePackage>>>,
 ) -> Result<Vec<(String, PackageState)>, String> {
-  // first, cache items in dpkg's state
-  let items = match cache {
-    Some(_cache) => _cache,
-    None => Rc::new(get_cached_items()),
-  };
-
   // recursive search
   let (tx, rx) = mpsc::channel();
   let progress_bar = ProgressBar::new(0);
@@ -279,7 +267,7 @@ pub fn get_missing_or_old_dependencies_recursive(
       counter += 1;
     }
   });
-  let res = sub_missing_or_old_dependencies_recursive(package, &mut vec![], false, Some(items));
+  let res = sub_missing_or_old_dependencies_recursive(package, &mut vec![], false);
 
   tx.send(()).unwrap();
   res

@@ -1,8 +1,6 @@
 use crate::cache;
-use crate::cache::get_cached_items;
 use crate::dpkg;
 use crate::fetcher;
-use crate::source;
 use crate::source::SourcePackage;
 use colored::*;
 use flate2::read::GzDecoder;
@@ -13,7 +11,6 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path;
-use std::rc::Rc;
 use std::sync::mpsc;
 use xz2::read::XzDecoder;
 
@@ -25,7 +22,7 @@ pub fn do_install(package: &str) {
       println!("No such file: {}", debpath.to_str().unwrap().to_string());
       return;
     }
-    match install_deb(&debpath, None) {
+    match install_deb(&debpath) {
       Ok(_) => {}
       Err(msg) => {
         println!("{}", msg);
@@ -33,20 +30,9 @@ pub fn do_install(package: &str) {
       }
     }
   } else {
-    // create cache for later uses
-    let progress_bar = ProgressBar::new(0);
-    progress_bar.set_style(
-      ProgressStyle::default_bar().template("Reading package information: {bar:40} {msg}"),
-    );
-    let cache =
-      Rc::new(source::resolve_duplication(&get_cached_items(), Some(&progress_bar)).unwrap());
-
     // search package information from cache
-    let _target_package = &cache::search_cache_with_name_glob(
-      &glob::Pattern::new(package).unwrap(),
-      true,
-      Some(cache.clone()),
-    );
+    let _target_package =
+      &cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true);
     if _target_package.len() == 0 {
       println!(
         "Package {} is not in cache. \nDo 'rapt update' or add sources.list.",
@@ -67,7 +53,7 @@ pub fn do_install(package: &str) {
     )
     .unwrap()
     {
-      dpkg::PackageState::MISSING => match install_package(&target_package, Some(cache)) {
+      dpkg::PackageState::MISSING => match install_package(&target_package) {
         Ok(()) => {}
         Err(msg) => {
           println!("{}", msg);
@@ -84,10 +70,7 @@ pub fn do_install(package: &str) {
   }
 }
 
-pub fn install_package(
-  package: &SourcePackage,
-  cache: Option<Rc<Vec<SourcePackage>>>,
-) -> Result<(), String> {
+pub fn install_package(package: &SourcePackage) -> Result<(), String> {
   // install target package's deb
   let progress_bar = ProgressBar::new(0);
   progress_bar.set_style(
@@ -101,29 +84,14 @@ pub fn install_package(
   };
   println!("fetched {} into {}", package.package, debname);
 
-  install_deb(&path::Path::new(&format!("archive/{}", debname)), cache)
+  install_deb(&path::Path::new(&format!("archive/{}", debname)))
 }
 
-pub fn install_deb(
-  debfile: &path::Path,
-  cache: Option<Rc<Vec<SourcePackage>>>,
-) -> Result<(), String> {
+pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   let tmp_workdir = path::Path::new("tmp");
   if !tmp_workdir.exists() {
     return Err("temporary working directory 'tmp' doesn't exist.".to_string());
   }
-
-  // create cache for later uses
-  let cache = match cache.clone() {
-    Some(_cache) => _cache,
-    None => {
-      let progress_bar = ProgressBar::new(0);
-      progress_bar.set_style(
-        ProgressStyle::default_bar().template("Reading package information: {bar:40} {msg}"),
-      );
-      Rc::new(source::resolve_duplication(&get_cached_items(), Some(&progress_bar)).unwrap())
-    }
-  };
 
   // extract control.tar.gz
   let mut archive = ar::Archive::new(File::open(debfile).unwrap());
@@ -168,11 +136,9 @@ pub fn install_deb(
   let package = &cache::search_cache_with_name_glob(
     &glob::Pattern::new(&_packages.iter().nth(0).unwrap().package).unwrap(),
     true,
-    Some(cache.clone()),
   )[0];
   println!("\nRecursively searching for dependencies: ");
-  let missing_old_package_names =
-    dpkg::get_missing_or_old_dependencies_recursive(package, true, Some(cache.clone()))?;
+  let missing_old_package_names = dpkg::get_missing_or_old_dependencies_recursive(package, true)?;
   let missing_package_names = missing_old_package_names
     .iter()
     .filter(|c| c.1 == dpkg::PackageState::MISSING)
@@ -186,14 +152,12 @@ pub fn install_deb(
       .iter()
       .map(|item| item.0.clone())
       .collect(),
-    Some(cache.clone()),
   );
   let old_packages = cache::search_cache_with_names(
     &old_package_names
       .iter()
       .map(|item| item.0.clone())
       .collect(),
-    Some(cache),
   );
 
   print!("\nThe following additional packages will be installed: \n  ");
@@ -312,8 +276,8 @@ pub mod test {
   fn test_vim_tiny() {
     let package = "vim-common";
     let items =
-      crate::cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true, None);
-    let missing = crate::dpkg::get_missing_or_old_dependencies(&items[0], true, None);
+      crate::cache::search_cache_with_name_glob(&glob::Pattern::new(package).unwrap(), true);
+    let missing = crate::dpkg::get_missing_or_old_dependencies(&items[0], true);
     println!("{:?}", missing);
     println!(
       "{:?}",

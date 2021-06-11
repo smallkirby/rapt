@@ -970,6 +970,7 @@ dependencies = [
  "indicatif",
  "libc",
  "log",
+ "once_cell",
  "regex",
  "reqwest",
  "simple_logger",

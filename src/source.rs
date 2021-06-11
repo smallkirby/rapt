@@ -1,8 +1,17 @@
 use crate::cache;
 use crate::version::*;
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
+use once_cell::sync::Lazy;
 use std::{cmp::Ordering, collections::HashMap};
 use strum_macros::Display;
+
+pub static CACHE: Lazy<Vec<SourcePackage>> = Lazy::new(|| {
+  let progress_bar = ProgressBar::new(0);
+  progress_bar.set_style(
+    ProgressStyle::default_bar().template("Reading package information: {bar:40} {msg}"),
+  );
+  resolve_duplication(&cache::get_cached_items(), Some(&progress_bar)).unwrap()
+});
 
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct SourcePackage {

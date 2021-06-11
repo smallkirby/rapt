@@ -4,29 +4,29 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
 #[derive(Debug, PartialEq)]
-pub enum LOCK_TYPE {
+pub enum LockType {
   DIR,
   FILE,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum LOCK {
-  ARCHIVE(LOCK_TYPE),
-  LIST(LOCK_TYPE),
+pub enum Lock {
+  ARCHIVE(LockType),
+  LIST(LockType),
 }
 
-pub fn get_lock(lock: LOCK) -> Result<(), String> {
+pub fn get_lock(lock: Lock) -> Result<(), String> {
   match lock {
-    LOCK::ARCHIVE(t) => match t {
-      LOCK_TYPE::DIR => {}
-      LOCK_TYPE::FILE => {}
+    Lock::ARCHIVE(t) => match t {
+      LockType::DIR => {}
+      LockType::FILE => {}
     },
-    LOCK::LIST(t) => match t {
-      LOCK_TYPE::DIR => match setup_lock_dir("lists", "partial", 0o700, true) {
+    Lock::LIST(t) => match t {
+      LockType::DIR => match setup_lock_dir("lists", "partial", 0o700, true) {
         Ok(()) => {}
         Err(_) => return Err("Failed to get a lock.".to_string()),
       },
-      LOCK_TYPE::FILE => {}
+      LockType::FILE => {}
     },
   };
 

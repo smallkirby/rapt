@@ -25,7 +25,7 @@ pub fn do_update() {
     }
   };
 
-  match lock::get_lock(lock::LOCK::LIST(lock::LOCK_TYPE::DIR)) {
+  match lock::get_lock(lock::Lock::LIST(lock::LockType::DIR)) {
     Ok(()) => {}
     Err(msg) => {
       println!("{}", msg);
