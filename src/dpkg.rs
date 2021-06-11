@@ -1,10 +1,9 @@
 use crate::cache;
-use crate::source::SourcePackage;
+use crate::source::{self, SourcePackage};
 use crate::version::*;
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::process::{Command, Stdio};
-use std::rc::Rc;
 use std::sync::mpsc::{self, TryRecvError};
 use std::thread;
 use std::time::Duration;
@@ -31,7 +30,7 @@ pub fn check_upgradable(
 ) -> Result<Vec<SourcePackage>, String> {
   let mut upgradable_items = vec![];
 
-  let dpkg_items = read_dpkg_state()?;
+  let dpkg_items = &*source::DPKG_CACHE;
   if _progress_bar.is_some() {
     _progress_bar.unwrap().set_length(dpkg_items.len() as u64);
     _progress_bar.unwrap().set_position(0);
@@ -57,7 +56,7 @@ pub fn check_upgradable(
 
     let cmp_res = comp_version(&iitem.version, &ditem.version);
     if cmp_res > 0 {
-      upgradable_items.push(ditem);
+      upgradable_items.push(ditem.clone());
     }
   }
 
@@ -71,12 +70,8 @@ pub fn check_missing_or_old(
   _package_name: &str,
   package_version: &Option<String>,
   _progress_bar: Option<&ProgressBar>,
-  dpkg_cache: Option<Rc<Vec<SourcePackage>>>,
 ) -> Result<PackageState, String> {
-  let installed_items = match dpkg_cache {
-    Some(_cacheitems) => _cacheitems,
-    None => Rc::new(read_dpkg_state()?),
-  };
+  let installed_items = &*source::DPKG_CACHE;
   let finalize_progress_bar = {
     || {
       if _progress_bar.is_some() {
@@ -148,7 +143,7 @@ pub fn get_missing_or_old_dependencies(
     );
     let progress_bar = if show_progress { Some(&tmp) } else { None };
 
-    match check_missing_or_old(dep_package, dep_version, progress_bar, None) {
+    match check_missing_or_old(dep_package, dep_version, progress_bar) {
       Ok(is_missing) => match is_missing {
         PackageState::MISSING => ret_items.push((dep_package.clone(), PackageState::MISSING)),
         PackageState::OLD => ret_items.push((dep_package.clone(), PackageState::OLD)),

@@ -1,7 +1,9 @@
 use crate::cache;
+use crate::dpkg;
 use crate::version::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use once_cell::sync::Lazy;
+use std::io::prelude::*;
 use std::{cmp::Ordering, collections::HashMap};
 use strum_macros::Display;
 
@@ -11,6 +13,13 @@ pub static CACHE: Lazy<Vec<SourcePackage>> = Lazy::new(|| {
     ProgressStyle::default_bar().template("Reading package information: {bar:40} {msg}"),
   );
   resolve_duplication(&cache::get_cached_items(), Some(&progress_bar)).unwrap()
+});
+pub static DPKG_CACHE: Lazy<Vec<SourcePackage>> = Lazy::new(|| {
+  print!("Reading dpkg status: ");
+  std::io::stdout().flush().unwrap();
+  let items = dpkg::read_dpkg_state().unwrap();
+  println!(" DONE");
+  return items;
 });
 
 #[derive(Debug, PartialEq, Default, Clone)]

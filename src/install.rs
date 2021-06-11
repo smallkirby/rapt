@@ -49,7 +49,6 @@ pub fn do_install(package: &str) {
       &target_package.package,
       &Some(target_package.version.clone()),
       Some(&progress_bar),
-      None,
     )
     .unwrap()
     {
@@ -281,7 +280,7 @@ pub mod test {
     println!("{:?}", missing);
     println!(
       "{:?}",
-      crate::dpkg::check_missing_or_old("xxd", &None, None, None)
+      crate::dpkg::check_missing_or_old("xxd", &None, None)
     );
     panic!("");
   }

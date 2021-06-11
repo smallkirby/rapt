@@ -1,18 +1,13 @@
 use crate::cache;
 use crate::dpkg;
+use crate::source;
 use crate::source::SourcePackage;
 use colored::*;
 use glob::Pattern;
 
 pub fn do_list(package: &str, installed: bool, upgradable: bool) {
   if installed {
-    let installed_items = match dpkg::read_dpkg_state() {
-      Ok(_installed_items) => _installed_items,
-      Err(msg) => {
-        println!("{}", msg);
-        return;
-      }
-    };
+    let installed_items = &*source::DPKG_CACHE;
     // 'apt list' uses glob pattern instead of regex.
     let package_glob = match Pattern::new(package) {
       Ok(_r) => _r,
