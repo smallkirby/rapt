@@ -2,6 +2,6 @@
 
 cargo build --release
 mkdir lists
-mkdir archives
+mkdir archive
 ln -s $(pwd)/target/release/rapt $(pwd)/rapt
 ./rapt update
