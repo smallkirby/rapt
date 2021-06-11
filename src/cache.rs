@@ -1,3 +1,4 @@
+use crate::lock::{get_lock, Lock};
 use crate::slist;
 use crate::source;
 use crate::source::SourcePackage;
@@ -128,6 +129,13 @@ pub fn search_cache_with_name_description_regex(
 
 pub fn get_cached_items() -> Vec<SourcePackage> {
   let mut ret_items = vec![];
+  let lock = match get_lock(Lock::LIST) {
+    Ok(_lock) => _lock,
+    Err(_) => {
+      println!("Failed to get a lock: lists/lock");
+      return vec![];
+    }
+  };
 
   match glob::glob("lists/*") {
     Ok(paths) => {
@@ -143,6 +151,7 @@ pub fn get_cached_items() -> Vec<SourcePackage> {
             let raw_cache = match std::fs::read_to_string(path) {
               Ok(_raw_cache) => _raw_cache,
               Err(msg) => {
+                lock.unlock().unwrap();
                 println!("{}", msg);
                 return vec![];
               }
@@ -150,12 +159,14 @@ pub fn get_cached_items() -> Vec<SourcePackage> {
             match source::SourcePackage::from_row(&raw_cache) {
               Ok(mut _items) => ret_items.append(&mut _items),
               Err(msg) => {
+                lock.unlock().unwrap();
                 println!("{}", msg);
                 return ret_items;
               }
             };
           }
           Err(msg) => {
+            lock.unlock().unwrap();
             println!("failed to open cache file: {}", msg);
             return vec![];
           }
@@ -163,11 +174,13 @@ pub fn get_cached_items() -> Vec<SourcePackage> {
       }
     }
     Err(_) => {
+      lock.unlock().unwrap();
       println!("invalid glob pattern.");
       return vec![];
     }
   };
 
+  lock.unlock().unwrap();
   ret_items
 }
 

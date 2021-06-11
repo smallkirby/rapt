@@ -11,21 +11,18 @@ pub enum Lock {
 }
 
 pub fn get_lock(lock: Lock) -> Result<FileLock, String> {
-  let lockdir_name;
-  match lock {
-    Lock::ARCHIVE => lockdir_name = "archives",
-    Lock::LIST => {
-      lockdir_name = "lists";
-      match setup_lock_dir("lists", "partial", 0o700, true) {
-        Ok(()) => {}
-        Err(_) => return Err("Failed to get a lock.".to_string()),
-      }
-      match setup_lock_dir("lists", "auxfiles", 0o755, true) {
-        Ok(()) => {}
-        Err(_) => return Err("Failed to get a lock.".to_string()),
-      }
-    }
+  let lockdir_name = match lock {
+    Lock::ARCHIVE => "archive",
+    Lock::LIST => "lists",
   };
+  match setup_lock_dir(lockdir_name, "partial", 0o700, true) {
+    Ok(()) => {}
+    Err(_) => return Err("Failed to get a lock.".to_string()),
+  }
+  match setup_lock_dir(lockdir_name, "auxfiles", 0o755, true) {
+    Ok(()) => {}
+    Err(_) => return Err("Failed to get a lock.".to_string()),
+  }
 
   do_get_lock(&format!("{}/lock", lockdir_name))
 }

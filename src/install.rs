@@ -1,6 +1,7 @@
 use crate::cache;
 use crate::dpkg;
 use crate::fetcher;
+use crate::lock::{get_lock, Lock};
 use crate::source::SourcePackage;
 use colored::*;
 use flate2::read::GzDecoder;
@@ -77,11 +78,17 @@ pub fn install_package(package: &SourcePackage) -> Result<(), String> {
       .template("Get: [{bar:40.cyan/blue}] {bytes}/{total_bytes} - {msg}")
       .progress_chars("#>-"),
   );
+
+  // get lock
+  let lock = get_lock(Lock::ARCHIVE)?;
+
+  // fetch deb file
   let debname = match fetcher::fetch_deb(&package, Some(&progress_bar)) {
     Ok(_debname) => _debname.0,
     Err(msg) => return Err(msg),
   };
   println!("fetched {} into {}", package.package, debname);
+  lock.unlock().unwrap();
 
   install_deb(&path::Path::new(&format!("archive/{}", debname)))
 }
@@ -198,11 +205,8 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     return Err("Abort.".to_string());
   }
 
-  // XXX
-  //// check permission
-  //if users::get_current_uid() != 0 {
-  //  return Err("install needs root permission.".to_string());
-  //}
+  // get lock
+  let lock = get_lock(Lock::ARCHIVE)?;
 
   // download all missing dependencies
   let mut handles = vec![];
@@ -248,6 +252,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
     handle.join().unwrap();
   }
   println!("Fetched {} kB in ?s (? kB/s)", fetched_amount / 1000);
+  lock.unlock().unwrap();
 
   // install dependencies
   for (_ix, md) in missing_packages
