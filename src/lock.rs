@@ -1,36 +1,33 @@
 use colored::*;
 use file_lock;
+use file_lock::FileLock;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
 #[derive(Debug, PartialEq)]
-pub enum LockType {
-  DIR,
-  FILE,
-}
-
-#[derive(Debug, PartialEq)]
 pub enum Lock {
-  ARCHIVE(LockType),
-  LIST(LockType),
+  ARCHIVE,
+  LIST,
 }
 
-pub fn get_lock(lock: Lock) -> Result<(), String> {
+pub fn get_lock(lock: Lock) -> Result<FileLock, String> {
+  let lockdir_name;
   match lock {
-    Lock::ARCHIVE(t) => match t {
-      LockType::DIR => {}
-      LockType::FILE => {}
-    },
-    Lock::LIST(t) => match t {
-      LockType::DIR => match setup_lock_dir("lists", "partial", 0o700, true) {
+    Lock::ARCHIVE => lockdir_name = "archives",
+    Lock::LIST => {
+      lockdir_name = "lists";
+      match setup_lock_dir("lists", "partial", 0o700, true) {
         Ok(()) => {}
         Err(_) => return Err("Failed to get a lock.".to_string()),
-      },
-      LockType::FILE => {}
-    },
+      }
+      match setup_lock_dir("lists", "auxfiles", 0o755, true) {
+        Ok(()) => {}
+        Err(_) => return Err("Failed to get a lock.".to_string()),
+      }
+    }
   };
 
-  Ok(())
+  do_get_lock(&format!("{}/lock", lockdir_name))
 }
 
 fn setup_lock_dir(dirname: &str, postfix: &str, mode: u32, is_dir: bool) -> Result<(), String> {
@@ -66,4 +63,11 @@ fn setup_lock_dir(dirname: &str, postfix: &str, mode: u32, is_dir: bool) -> Resu
   perm.set_mode(mode);
 
   Ok(())
+}
+
+pub fn do_get_lock(lockpath: &str) -> Result<FileLock, String> {
+  match FileLock::lock(lockpath, false, true) {
+    Ok(lock) => Ok(lock),
+    Err(_) => Err(format!("Failed to get a lock: {}", lockpath.red().bold()).to_string()),
+  }
 }

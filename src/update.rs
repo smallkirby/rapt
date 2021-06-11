@@ -25,17 +25,20 @@ pub fn do_update() {
     }
   };
 
-  match lock::get_lock(lock::Lock::LIST(lock::LockType::DIR)) {
-    Ok(()) => {}
+  let lock = match lock::get_lock(lock::Lock::LIST) {
+    Ok(_lock) => _lock,
     Err(msg) => {
       println!("{}", msg);
       return;
     }
-  }
+  };
 
   let start_time = std::time::SystemTime::now();
   // fetch index files and get package items.
   println!("Fetching indexes... ");
+
+  std::thread::sleep(std::time::Duration::from_millis(999999));
+
   let mut fetched_amount = 0;
   match fetch_indexes_thread(&sources) {
     Ok((fetched_sizes, mut items)) => {
@@ -60,6 +63,8 @@ pub fn do_update() {
     "Fetched {} kB in {}s ({} kB/s)",
     fetched_amount_kb, total_time, bps
   );
+
+  lock.unlock().unwrap();
 
   let progress_bar = ProgressBar::new(0);
   progress_bar.set_style(
