@@ -2,6 +2,7 @@ use crate::source::SourcePackage;
 use crate::{cache, dpkg, source};
 use colored::*;
 use glob::Pattern;
+use indicatif::{ProgressBar, ProgressStyle};
 
 pub fn do_list(package: &str, installed: bool, upgradable: bool) {
   if installed {
@@ -17,8 +18,13 @@ pub fn do_list(package: &str, installed: bool, upgradable: bool) {
     let found_items = filter_package_with_name(&package_glob, &installed_items);
     list_packages(&found_items);
   } else if upgradable {
-    let cached_items = cache::get_cached_items();
-    let upgradable_items = match dpkg::check_upgradable(&cached_items, None) {
+    let progress_bar = ProgressBar::new(0);
+    progress_bar.set_style(
+      ProgressStyle::default_bar().template("Checking dpkg status       : {bar:40} {msg}"),
+    );
+
+    let cached_items = &*source::CACHE;
+    let upgradable_items = match dpkg::check_upgradable(&cached_items, Some(&progress_bar)) {
       Ok(_upgradable_items) => _upgradable_items,
       Err(msg) => {
         println!("{}", msg);
@@ -54,12 +60,16 @@ pub fn list_packages(items: &Vec<SourcePackage>) {
   for item in items {
     // XXX should show distro/arch, but dpkg/status doesn't have these info.
     // maybe, should search apt/lists/** for them.
+    let arch = match item.arch.iter().nth(0) {
+      Some(_tmp) => _tmp.to_string(),
+      None => "".to_string(),
+    };
     println!(
       "{}/{} {} {}",
       item.package.green().bold(),
-      "?",
+      item.component,
       item.version,
-      "?"
+      arch,
     );
   }
 }

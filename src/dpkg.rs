@@ -21,7 +21,7 @@ pub fn read_dpkg_state() -> Result<Vec<SourcePackage>, String> {
     Err(_msg) => return Err(_msg.to_string()),
   };
 
-  SourcePackage::from_raw(&raw_packages)
+  SourcePackage::from_raw(&raw_packages, "")
 }
 
 pub fn check_upgradable(

@@ -6,6 +6,22 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 
+pub fn get_info_from_filename(filename: &str) -> (String, String) {
+  let tmp = filename.split("_dists_").collect::<Vec<_>>();
+  let part = match tmp.iter().nth(1) {
+    Some(_part) => _part,
+    None => return ("".to_string(), "".to_string()),
+  };
+  let ix = match part.rfind("-") {
+    Some(_ix) => _ix,
+    None => return ("".to_string(), "".to_string()),
+  };
+  let dist = String::from(&part[..ix]);
+  let component = String::from(&part[ix + 1..]);
+
+  (dist, component)
+}
+
 pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
   match glob::glob("lists/*") {
     Ok(paths) => {
@@ -22,7 +38,10 @@ pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
                 return Err(());
               }
             };
-            match source::SourcePackage::from_raw(&raw_cache) {
+            match source::SourcePackage::from_raw(
+              &raw_cache,
+              path.file_name().unwrap().to_str().unwrap(),
+            ) {
               Ok(_items) => {
                 if _items
                   .iter()
@@ -143,10 +162,11 @@ pub fn get_cached_items() -> Vec<SourcePackage> {
             if path.is_dir() {
               continue;
             }
-            if path.file_name().unwrap() == "lock" {
+            let filename = path.file_name().unwrap();
+            if filename == "lock" {
               continue;
             }
-            let raw_cache = match std::fs::read_to_string(path) {
+            let raw_cache = match std::fs::read_to_string(&path) {
               Ok(_raw_cache) => _raw_cache,
               Err(msg) => {
                 lock.unlock().unwrap();
@@ -154,7 +174,7 @@ pub fn get_cached_items() -> Vec<SourcePackage> {
                 return vec![];
               }
             };
-            match source::SourcePackage::from_raw(&raw_cache) {
+            match source::SourcePackage::from_raw(&raw_cache, filename.to_str().unwrap()) {
               Ok(mut _items) => ret_items.append(&mut _items),
               Err(msg) => {
                 lock.unlock().unwrap();

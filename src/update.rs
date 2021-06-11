@@ -63,13 +63,7 @@ pub fn do_update() {
   progress_bar.set_style(
     ProgressStyle::default_bar().template("Reading package information: {bar:40} {msg}"),
   );
-  let resolved_items = match source::resolve_duplication(&package_items, Some(&progress_bar)) {
-    Ok(_resolved_items) => _resolved_items,
-    Err(msg) => {
-      println!("\n{}", msg);
-      return;
-    }
-  };
+  let resolved_items = &*source::CACHE;
 
   let progress_bar = ProgressBar::new(0);
   progress_bar.set_style(
@@ -127,7 +121,7 @@ pub fn fetch_indexes_thread(
         }
       }
       let fetched_size = raw_index.len() as u64;
-      match source::SourcePackage::from_raw(&raw_index) {
+      match source::SourcePackage::from_raw(&raw_index, &source.to_filename()) {
         Ok(mut _items) => {
           tx.send(Ok((fetched_size, _items))).unwrap();
         }

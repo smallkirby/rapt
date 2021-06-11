@@ -223,6 +223,7 @@ pub mod test {
       comp_version("20200323-1build1~ubuntu20.04.1", "20200323-1"),
       1
     );
+    assert_eq!(comp_version("1:3.36.5-0ubuntu2", "1:3.36.5-0ubuntu1"), 1);
   }
 
   #[test]
