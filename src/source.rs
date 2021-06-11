@@ -22,9 +22,63 @@ pub static DPKG_CACHE: Lazy<Vec<SourcePackage>> = Lazy::new(|| {
   return items;
 });
 
+#[derive(Debug, PartialEq, Clone, Display)]
+pub enum StatusWant {
+  INSTALL,
+  HOLD,
+  DEINSTALL,
+  PURGE,
+  UNKNOWN,
+}
+
+#[derive(Debug, PartialEq, Clone, Display)]
+pub enum StatusFlag {
+  OK,
+  REINSTREQ,
+  HOLD,
+  HOLD_REINSTREQ,
+}
+
+#[derive(Debug, PartialEq, Clone, Display)]
+pub enum StatusStatus {
+  NOT_INSTALLED,
+  UNPACKED,
+  HALF_CONFIGURED,
+  HALF_INSTALLED,
+  INSTALLED,
+  CONFIG_FILES,
+  POST_INST_FAILED,
+  REMOVAL_FAILED,
+}
+
+impl Default for StatusWant {
+  fn default() -> Self {
+    Self::UNKNOWN
+  }
+}
+impl Default for StatusFlag {
+  fn default() -> Self {
+    Self::HOLD
+  }
+}
+impl Default for StatusStatus {
+  fn default() -> Self {
+    Self::NOT_INSTALLED
+  }
+}
+
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct Status {
+  // status field exists only in dpkg/status(in .deb file)
+  want: StatusWant,
+  flag: StatusFlag,
+  status: StatusStatus,
+}
+
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct SourcePackage {
   pub package: String,
+  pub status: Status,
   pub binary: Vec<String>,
   pub arch: Vec<Arch>,
   pub version: String,
@@ -47,6 +101,7 @@ pub struct SourcePackage {
   pub conffiles: Vec<String>,
   pub origin: String,
   pub bugs: String,
+  pub installed_size: u64,
 }
 
 impl SourcePackage {
@@ -133,6 +188,9 @@ impl SourcePackage {
             .ok_or(format!("invalid 'Package' format: {}", line))?
             .to_string();
         }
+        "Status" => {
+          item.status = parse_status(parts.nth(0).unwrap())?;
+        }
         "Architecture" => {
           let arch = parts
             .nth(0)
@@ -162,6 +220,14 @@ impl SourcePackage {
             "standard" => Priority::STANDARD,
             _ => Priority::UNKNOWN,
           };
+        }
+        "Installed-Size" => {
+          item.installed_size = parts
+            .nth(0)
+            .ok_or(format!("invalid 'Installed-Size' format: {}", line))?
+            .to_string()
+            .parse()
+            .unwrap_or(0);
         }
         "Essential" => {
           item.essential = match *parts
@@ -526,8 +592,65 @@ pub fn resolve_duplication(
   Ok(hashmap.values().map(|i| i.to_owned()).collect::<Vec<_>>())
 }
 
+pub fn parse_status(status_str: &str) -> Result<Status, String> {
+  let status_str = status_str.split(" ").collect::<Vec<_>>();
+  if status_str.len() != 3 {
+    return Err(format!(
+      "Missing field in Status: {}",
+      status_str
+        .iter()
+        .map(|i| i.to_string())
+        .collect::<Vec<_>>()
+        .join(" ")
+    ));
+  }
+  let want = match *status_str.iter().nth(0).unwrap() {
+    "install" => StatusWant::INSTALL,
+    "hold" => StatusWant::HOLD,
+    "deinstall" => StatusWant::DEINSTALL,
+    "purge" => StatusWant::PURGE,
+    _ => StatusWant::UNKNOWN,
+  };
+  let flag = match *status_str.iter().nth(1).unwrap() {
+    "ok" => StatusFlag::OK,
+    "reinstreq" => StatusFlag::REINSTREQ,
+    "hold" => StatusFlag::HOLD,
+    "hold-reinstreq" => StatusFlag::HOLD_REINSTREQ,
+    _ => {
+      return Err(format!(
+        "Unknown status flag field: {}",
+        status_str.iter().nth(1).unwrap()
+      ))
+    }
+  };
+  let status = match *status_str.iter().nth(2).unwrap() {
+    "not-installed" => StatusStatus::NOT_INSTALLED,
+    "unpacked" => StatusStatus::UNPACKED,
+    "half-configured" => StatusStatus::HALF_CONFIGURED,
+    "installed" => StatusStatus::INSTALLED,
+    "half-installed" => StatusStatus::HALF_INSTALLED,
+    "config-files" => StatusStatus::CONFIG_FILES,
+    "post-inst-failed" => StatusStatus::POST_INST_FAILED,
+    "removal-failed" => StatusStatus::REMOVAL_FAILED,
+    _ => {
+      return Err(format!(
+        "Unknown status status field: {}",
+        status_str.iter().nth(2).unwrap()
+      ))
+    }
+  };
+
+  Ok(Status {
+    want: want,
+    flag: flag,
+    status: status,
+  })
+}
+
 #[cfg(test)]
 pub mod test {
+  use crate::source::SourcePackage;
+
   #[test]
   fn test_package_source_from_row() {
     let sample = std::fs::read_to_string("test/sample-index").unwrap();
@@ -616,5 +739,34 @@ pub mod test {
     assert_eq!(pdep1.1.unwrap(), "2.15");
     assert_eq!(pdep2.0, "libbz2-1.0");
     assert_eq!(pdep2.1, None);
+  }
+
+  #[test]
+  fn test_parsing_dpkg_status() {
+    use crate::source::*;
+    let sample_stat_str = std::fs::read_to_string("test/sample-dpkg-status").unwrap();
+    //let items = SourcePackage::from_row(&sample_stat_str).unwrap();
+    let items = match SourcePackage::from_row(&sample_stat_str) {
+      Ok(a) => a,
+      Err(msg) => {
+        println!("{}", msg);
+        panic!();
+      }
+    };
+    let vim = items.iter().nth(0).unwrap();
+    let cowsay = items.iter().nth(1).unwrap();
+
+    assert_eq!(vim.package, "vim");
+    assert_eq!(cowsay.package, "cowsay");
+
+    assert_eq!(vim.installed_size, 3038);
+    assert_eq!(cowsay.installed_size, 91);
+
+    assert_eq!(vim.status.want, StatusWant::DEINSTALL);
+    assert_eq!(vim.status.flag, StatusFlag::OK);
+    assert_eq!(vim.status.status, StatusStatus::CONFIG_FILES);
+    assert_eq!(cowsay.status.want, StatusWant::INSTALL);
+    assert_eq!(cowsay.status.flag, StatusFlag::OK);
+    assert_eq!(cowsay.status.status, StatusStatus::INSTALLED);
   }
 }
