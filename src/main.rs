@@ -15,6 +15,7 @@ pub mod slist;
 pub mod source;
 pub mod update;
 pub mod version;
+pub mod upgrade;
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Opts {
@@ -33,6 +34,7 @@ pub enum Command {
   SHOW,
   INSTALL,
   CLEAN,
+  UPGRADE,
   UNKNOWN,
 }
 
@@ -71,6 +73,9 @@ fn main() {
     }
     Command::CLEAN => {
       clean::do_clean();
+    }
+    Command::UPGRADE => {
+      upgrade::do_upgrade();
     }
     Command::UNKNOWN => {
       println!("Unknown subcommand");
@@ -115,6 +120,9 @@ pub fn parse_opts(opts: &mut Opts) {
   } else if let Some(ref _matches) = matches.subcommand_matches("clean") {
     log::trace!("subcommand: clean");
     opts.command = Command::CLEAN;
+  } else if let Some(ref _matches) = matches.subcommand_matches("upgrade") {
+    log::trace!("subcommand: upgrade");
+    opts.command = Command::UPGRADE;
   } else if let Some(ref matches) = matches.subcommand_matches("install") {
     log::trace!("subcommand: install");
     opts.command = Command::INSTALL;

@@ -1,3 +1,4 @@
+use crate::dpkg::PackageState;
 use crate::lock::{get_lock, Lock};
 use crate::source::SourcePackage;
 use crate::{cache, dpkg, fetcher};
@@ -21,7 +22,7 @@ pub fn do_install(package: &str) {
       println!("No such file: {}", debpath.to_str().unwrap().to_string());
       return;
     }
-    match install_deb(&debpath) {
+    match install_debs(&vec![&debpath]) {
       Ok(_) => {}
       Err(msg) => {
         println!("{}", msg);
@@ -68,6 +69,34 @@ pub fn do_install(package: &str) {
   }
 }
 
+pub fn install_packages(packages: Vec<&SourcePackage>) -> Result<(), String> {
+  println!("{:?}", packages.iter().map(|p| p.package.clone()).collect::<Vec<_>>());
+  // install target package's deb
+  let progress_bar = ProgressBar::new(0);
+  progress_bar.set_style(
+    ProgressStyle::default_bar()
+      .template("Get: [{bar:40.cyan/blue}] {bytes}/{total_bytes} - {msg}")
+      .progress_chars("#>-"),
+  );
+
+  // get lock
+  let lock = get_lock(Lock::ARCHIVE)?;
+
+  // fetch deb files
+  let mut debs = vec![];
+  for package in packages {
+    let debname = match fetcher::fetch_deb(&package, Some(&progress_bar)) {
+      Ok(_debname) => _debname.0,
+      Err(msg) => return Err(msg),
+    };
+    println!("fetched {} into {}", package.package, debname);
+    debs.push(format!("archive/{}", debname));
+  }
+  lock.unlock().unwrap();
+
+  install_debs(&debs.iter().map(|d| path::Path::new(d)).collect::<Vec<_>>())
+}
+
 pub fn install_package(package: &SourcePackage) -> Result<(), String> {
   // install target package's deb
   let progress_bar = ProgressBar::new(0);
@@ -88,61 +117,31 @@ pub fn install_package(package: &SourcePackage) -> Result<(), String> {
   println!("fetched {} into {}", package.package, debname);
   lock.unlock().unwrap();
 
-  install_deb(&path::Path::new(&format!("archive/{}", debname)))
+  install_debs(&vec![&path::Path::new(&format!("archive/{}", debname))])
 }
 
-pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
+pub fn install_debs(debfiles: &Vec<&path::Path>) -> Result<(), String> {
   let tmp_workdir = path::Path::new("tmp");
   if !tmp_workdir.exists() {
     return Err("temporary working directory 'tmp' doesn't exist.".to_string());
   }
 
-  // extract control.tar.gz
-  let mut archive = ar::Archive::new(File::open(debfile).unwrap());
-  let mut control_file_name = String::new();
-  while let Some(entry_result) = archive.next_entry() {
-    let mut entry = entry_result.unwrap();
-    let _tmp = String::from(std::str::from_utf8(entry.header().identifier()).unwrap());
-    if _tmp.contains("control") {
-      control_file_name = _tmp;
-    }
-    let mut file = File::create(format!(
-      "tmp/{}",
-      std::str::from_utf8(entry.header().identifier()).unwrap()
-    ))
-    .unwrap();
-    io::copy(&mut entry, &mut file).unwrap();
+  // extract debs and get direct dependencies
+  let mut _packages = vec![];
+  for deb in debfiles {
+    _packages.append(&mut extract_control(deb)?);
   }
-
-  // extract control
-  if control_file_name.contains(".gz") {
-    let control_tar_gz = File::open(format!("tmp/{}", control_file_name)).unwrap();
-    let control_tar = GzDecoder::new(control_tar_gz);
-    let mut archive = tar::Archive::new(control_tar);
-    archive.unpack("tmp").unwrap();
-  } else if control_file_name.contains(".xz") {
-    let control_tar_xz = File::open(format!("tmp/{}", control_file_name)).unwrap();
-    let control_tar = XzDecoder::new(control_tar_xz);
-    let mut archive = tar::Archive::new(control_tar);
-    archive.unpack("tmp").unwrap();
-  } else {
-    return Err(format!(
-      "Unknown control file archive format: {}",
-      control_file_name
-    ));
-  }
-
-  // read package info from control
-  let control = std::fs::read_to_string("tmp/control").unwrap();
-  let _packages = SourcePackage::from_raw(&control, "").unwrap();
 
   // find missing/old dependencies
-  let package = &cache::search_cache_with_name_glob(
-    &glob::Pattern::new(&_packages.iter().nth(0).unwrap().package).unwrap(),
-    true,
-  )[0];
+  let packages = &cache::search_cache_with_names(
+    &_packages.iter().map(|p| p.package.clone()).collect::<Vec<_>>()
+  );
   println!("\nRecursively searching for dependencies: ");
-  let missing_old_package_names = dpkg::get_missing_or_old_dependencies_recursive(package, true)?;
+  let mut missing_old_package_names: Vec<(String, PackageState)> = vec![];
+  for p in packages {
+    missing_old_package_names.append(&mut dpkg::get_missing_or_old_dependencies_recursive(p, true)?);
+  }
+
   let missing_package_names = missing_old_package_names
     .iter()
     .filter(|c| c.1 == dpkg::PackageState::MISSING)
@@ -174,7 +173,7 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   println!("");
 
   print!("The following NEW packages will be installed: \n  ");
-  print!("{} ", package.package.green().bold());
+  print!("{} ", packages.iter().map(|p| p.package.clone()).collect::<Vec<_>>().join(" ").green().bold());
   for mp in &missing_packages {
     print!("{} ", mp.package.green());
   }
@@ -264,8 +263,10 @@ pub fn install_deb(debfile: &path::Path) -> Result<(), String> {
   }
 
   // install target
-  println!("installing {} ...", package.package.green().bold());
-  dpkg::install_archived_package(&package)?;
+  for p in packages {
+    println!("installing {} ...", p.package.green().bold());
+    dpkg::install_archived_package(&p)?;
+  }
 
   println!("{}", "Install complete.".yellow().bold());
 
@@ -287,4 +288,51 @@ pub mod test {
     );
     panic!("");
   }
+}
+
+pub fn extract_control(debfile: &path::Path) -> Result<Vec<SourcePackage>, String> {
+  // extract control.tar.gz
+  let mut archive = ar::Archive::new(File::open(debfile).unwrap());
+  let mut control_file_name = String::new();
+  while let Some(entry_result) = archive.next_entry() {
+    let mut entry = entry_result.unwrap();
+    let _tmp = String::from(std::str::from_utf8(entry.header().identifier()).unwrap());
+    if _tmp.contains("control") {
+      control_file_name = _tmp;
+    }
+    let mut file = File::create(format!(
+      "tmp/{}",
+      std::str::from_utf8(entry.header().identifier()).unwrap()
+    ))
+    .unwrap();
+    io::copy(&mut entry, &mut file).unwrap();
+  }
+
+  // extract control
+  if control_file_name.contains(".gz") {
+    let control_tar_gz = File::open(format!("tmp/{}", control_file_name)).unwrap();
+    let control_tar = GzDecoder::new(control_tar_gz);
+    let mut archive = tar::Archive::new(control_tar);
+    archive.unpack("tmp").unwrap();
+  } else if control_file_name.contains(".xz") {
+    let control_tar_xz = File::open(format!("tmp/{}", control_file_name)).unwrap();
+    let control_tar = XzDecoder::new(control_tar_xz);
+    let mut archive = tar::Archive::new(control_tar);
+    archive.unpack("tmp").unwrap();
+  } else {
+    return Err(format!(
+      "Unknown control file archive format: {}",
+      control_file_name
+    ));
+  }
+
+  // read package info from control
+  let control = std::fs::read_to_string("tmp/control").unwrap();
+  let _packages = SourcePackage::from_raw(&control, "").unwrap();
+
+  // read package info from control
+  let control = std::fs::read_to_string("tmp/control").unwrap();
+  let _packages = SourcePackage::from_raw(&control, "").unwrap();
+
+  Ok(_packages)
 }

@@ -110,6 +110,7 @@ pub struct SourcePackage {
 
 impl SourcePackage {
   pub fn to_pool_uri(&self) -> Result<String, ()> {
+    println!("{:?}", self);
     let mut puri = String::new();
     puri.push_str("http");
     puri.push_str("://");
@@ -118,6 +119,8 @@ impl SourcePackage {
       Ok(domain) => puri.push_str(&domain),
       Err(()) => return Err(()),
     };
+    println!("puri: {:?}", puri);
+    println!("filename: {:?}", self.filename);
     puri.push_str(&self.filename);
 
     Ok(puri)

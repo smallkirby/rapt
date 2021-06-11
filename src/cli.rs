@@ -31,6 +31,8 @@ pub fn build_cli() -> App<'static, 'static> {
         .about("install package")
         .arg(Arg::with_name("package").help("package name or .deb file to install").required(true)),
       SubCommand::with_name("clean")
-        .about("clean archive directory")
+        .about("clean archive directory"),
+      SubCommand::with_name("upgrade")
+        .about("install upgradable packages")
     ])
 }
