@@ -1,8 +1,6 @@
 use crate::lock::{get_lock, Lock};
 use crate::slist;
-use crate::source;
-use crate::source::SourcePackage;
-use crate::source::CACHE;
+use crate::source::{self, SourcePackage, CACHE};
 use glob::Pattern;
 use std::fs;
 use std::io::Write;

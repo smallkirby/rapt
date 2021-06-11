@@ -3,13 +3,8 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::sync::mpsc;
 use std::thread;
 
-use crate::cache;
-use crate::dpkg;
-use crate::fetcher;
-use crate::lock;
-use crate::slist;
-use crate::source;
 use crate::source::SourcePackage;
+use crate::{cache, dpkg, fetcher, lock, slist, source};
 
 pub fn do_update() {
   log::trace!("do_update()");

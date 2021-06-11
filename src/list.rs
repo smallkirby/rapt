@@ -1,7 +1,5 @@
-use crate::cache;
-use crate::dpkg;
-use crate::source;
 use crate::source::SourcePackage;
+use crate::{cache, dpkg, source};
 use colored::*;
 use glob::Pattern;
 

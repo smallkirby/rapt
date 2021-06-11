@@ -1,8 +1,6 @@
-use crate::cache;
-use crate::dpkg;
-use crate::fetcher;
 use crate::lock::{get_lock, Lock};
 use crate::source::SourcePackage;
+use crate::{cache, dpkg, fetcher};
 use colored::*;
 use flate2::read::GzDecoder;
 use glob;

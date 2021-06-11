@@ -1,6 +1,5 @@
 use colored::*;
-use file_lock;
-use file_lock::FileLock;
+use file_lock::{self, FileLock};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 

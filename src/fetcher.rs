@@ -1,5 +1,4 @@
-use crate::slist;
-use crate::source;
+use crate::{slist, source};
 use flate2::read::GzDecoder;
 use indicatif::ProgressBar;
 use reqwest::{header, Client};
