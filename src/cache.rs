@@ -13,6 +13,9 @@ pub fn get_pool_domain(package: &SourcePackage) -> Result<String, ()> {
       for entry in paths {
         match entry {
           Ok(path) => {
+            if path.is_dir() || path.file_name().unwrap().to_str().unwrap() == "lock" {
+              continue;
+            }
             let raw_cache = match std::fs::read_to_string(&path) {
               Ok(_raw_cache) => _raw_cache,
               Err(msg) => {
