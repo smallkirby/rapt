@@ -51,3 +51,9 @@ https://www.debian.org/doc/debian-policy/ch-relationships.html
 - data archive: 実際にインストールするファイル群。
 - control archive: pre/postスクリプト等。
   - この中の`control`がindexのentryと同じ内容を持っていて、dependency解決できる。
+
+# lock
+- '/var/lib/apt/lists: root:root d755
+- '/var/lib/apt/lists/lock': root:root 640
+- '/var/lib/apt/lists/auxfiles': _apt:root d755
+- '/var/lib/apt/lists/partial': _apt:root d700

@@ -8,6 +8,7 @@ pub mod dpkg;
 pub mod fetcher;
 pub mod install;
 pub mod list;
+pub mod lock;
 pub mod search;
 pub mod show;
 pub mod slist;

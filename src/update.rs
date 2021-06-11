@@ -6,6 +6,7 @@ use std::thread;
 use crate::cache;
 use crate::dpkg;
 use crate::fetcher;
+use crate::lock;
 use crate::slist;
 use crate::source;
 use crate::source::SourcePackage;
@@ -23,6 +24,14 @@ pub fn do_update() {
       return;
     }
   };
+
+  match lock::get_lock(lock::LOCK::LIST(lock::LOCK_TYPE::DIR)) {
+    Ok(()) => {}
+    Err(msg) => {
+      println!("{}", msg);
+      return;
+    }
+  }
 
   let start_time = std::time::SystemTime::now();
   // fetch index files and get package items.
