@@ -69,8 +69,10 @@ pub fn do_install(package: &str) {
   }
 }
 
+// warning: this @packages should have 'Filename" field.
+//          it means that package should be re-searched in cachefiles
+//          (control dpkg/status or controlfile doesn't have this filed.)
 pub fn install_packages(packages: Vec<&SourcePackage>) -> Result<(), String> {
-  println!("{:?}", packages.iter().map(|p| p.package.clone()).collect::<Vec<_>>());
   // install target package's deb
   let progress_bar = ProgressBar::new(0);
   progress_bar.set_style(

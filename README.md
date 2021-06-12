@@ -13,7 +13,7 @@
 | 🌤 | `rapt show` |
 | 🌤 | `rapt search` |
 | 🌤 | `rapt list` |
-| ⛈ | `rapt upgrade` |
+| 🌤 | `rapt upgrade` |
 | ⛈ | `rapt dist-upgrade` |
 | ☁ | `rapt install` |
 | ⛈ | `rapt remove` |

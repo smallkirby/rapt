@@ -25,10 +25,8 @@ pub fn fetch_deb(
     }
   };
 
-  println!("uri: {:?}", uri);
   let _a = uri.rfind('/').unwrap();
   let debname = String::from(&uri[_a + 1..]);
-  println!("deb: {}", debname);
   let mut output = std::fs::File::create(format!("archive/{}", &debname)).unwrap();
   match _progress_bar {
     Some(progress_bar) => {

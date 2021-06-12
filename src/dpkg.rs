@@ -241,7 +241,7 @@ pub fn get_missing_or_old_dependencies_recursive(
   progress_bar.set_style(
     ProgressStyle::default_bar()
       .template("{spinner:.blue} [{elapsed_precise}] {bar:70.blue} {msg}")
-      .progress_chars("*@-"),
+      .progress_chars("+- "),
   );
   let _ = std::thread::spawn(move || {
     let mut counter = 0;
@@ -251,7 +251,7 @@ pub fn get_missing_or_old_dependencies_recursive(
         progress_bar.inc_length(10);
         progress_bar.inc(5);
       }
-      thread::sleep(Duration::from_millis(200));
+      thread::sleep(Duration::from_millis(20));
       match rx.try_recv() {
         Ok(_) | Err(TryRecvError::Disconnected) => {
           progress_bar.finish_with_message("DONE");
