@@ -22,6 +22,17 @@ pub static DPKG_CACHE: Lazy<Vec<SourcePackage>> = Lazy::new(|| {
   println!(" DONE");
   return items;
 });
+pub static EXTENDED_CACHE: Lazy<Vec<(String, bool)>> = Lazy::new(|| {
+  print!("Reading extended states: ");
+  std::io::stdout().flush().unwrap();
+  // for now, read rapt's extended_states and actual apt's one.
+  let mut items = read_extended_information("apt/extended_states");
+  items.append(&mut read_extended_information(
+    "/var/lib/apt/extended_states",
+  ));
+  println!(" DONE");
+  return items;
+});
 
 #[derive(Debug, PartialEq, Clone, Display)]
 pub enum StatusWant {
@@ -683,6 +694,9 @@ pub fn read_extended_information(filename: &str) -> Vec<(String, bool)> {
   };
   for parts in extended_str.split("\n\n").collect::<Vec<_>>() {
     let tmp = parts.split("\n").collect::<Vec<_>>();
+    if tmp.len() <= 1 {
+      continue;
+    }
     let package = tmp[0].split("Package: ").collect::<Vec<_>>()[1];
     let auto = match tmp[2].split("Auto-Installed: ").collect::<Vec<_>>()[1] {
       "1" => true,
