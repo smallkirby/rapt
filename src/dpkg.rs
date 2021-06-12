@@ -1,7 +1,8 @@
 use crate::cache;
-use crate::source::{self, SourcePackage};
+use crate::source::{self, SourcePackage, DPKG_CACHE};
 use crate::version::*;
 use colored::*;
+use glob::Pattern;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, TryRecvError};
@@ -128,6 +129,23 @@ pub fn check_missing_or_old(
 
   finalize_progress_bar();
   Ok(PackageState::MISSING)
+}
+
+pub fn search_dpkg_with_name_glob(glob: &Pattern, case_sensitive: bool) -> Vec<SourcePackage> {
+  let mut ret_items = vec![];
+  let cached_items = &*DPKG_CACHE;
+  for item in cached_items {
+    if case_sensitive {
+      if glob.matches(&item.package) {
+        ret_items.push(item.clone());
+      }
+    } else {
+      if glob.matches(&item.package.to_lowercase()) {
+        ret_items.push(item.clone());
+      }
+    }
+  }
+  ret_items
 }
 
 pub fn get_missing_or_old_dependencies(

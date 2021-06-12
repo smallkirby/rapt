@@ -1,5 +1,5 @@
-use crate::cache;
 use crate::source::SourcePackage;
+use crate::{dpkg, source};
 use colored::*;
 use glob::Pattern;
 
@@ -12,8 +12,11 @@ pub fn do_show(package: &str) {
       return;
     }
   };
-  let found_items = cache::search_cache_with_name_glob(&package_glob, false);
-  list_packages(&found_items);
+  let found_items = dpkg::search_dpkg_with_name_glob(&package_glob, false);
+  let found_resolved_items = source::resolve_duplication(&found_items, None).unwrap();
+
+  println!("");
+  list_packages(&found_resolved_items);
 }
 
 pub fn list_packages(items: &Vec<SourcePackage>) {
