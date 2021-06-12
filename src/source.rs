@@ -1,6 +1,7 @@
 use crate::cache;
 use crate::dpkg;
 use crate::version::*;
+use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use once_cell::sync::Lazy;
 use std::io::prelude::*;
@@ -668,8 +669,35 @@ pub fn parse_status(status_str: &str) -> Result<Status, String> {
   })
 }
 
+pub fn read_extended_information(filename: &str) -> Vec<(String, bool)> {
+  let mut ret = vec![];
+  let extended_str = match std::fs::read_to_string(filename) {
+    Ok(_str) => _str,
+    Err(_) => {
+      println!(
+        "Err: failed to open extended information file: {}",
+        "apt/extended_states".red().bold()
+      );
+      return vec![];
+    }
+  };
+  for parts in extended_str.split("\n\n").collect::<Vec<_>>() {
+    let tmp = parts.split("\n").collect::<Vec<_>>();
+    let package = tmp[0].split("Package: ").collect::<Vec<_>>()[1];
+    let auto = match tmp[2].split("Auto-Installed: ").collect::<Vec<_>>()[1] {
+      "1" => true,
+      _ => false,
+    };
+    ret.push((package.to_string(), auto));
+  }
+
+  ret
+}
+
 #[cfg(test)]
 pub mod test {
+  use tokio::fs::read_dir;
+
   #[test]
   fn test_package_source_from_row() {
     let sample = std::fs::read_to_string("test/sample-index").unwrap();
@@ -792,5 +820,20 @@ pub mod test {
     assert_eq!(cowsay.status.want, StatusWant::INSTALL);
     assert_eq!(cowsay.status.flag, StatusFlag::OK);
     assert_eq!(cowsay.status.status, StatusStatus::INSTALLED);
+  }
+
+  #[test]
+  fn test_read_extended_information() {
+    use super::read_extended_information;
+    let res = read_extended_information("test/sample-extended_states");
+    assert_eq!(
+      res,
+      vec![
+        ("libclass-method-modifiers-perl".to_string(), true),
+        ("libsub-name-perl".to_string(), true),
+        ("librole-tiny-perl".to_string(), false),
+        ("libimport-into-perl".to_string(), true),
+      ]
+    );
   }
 }

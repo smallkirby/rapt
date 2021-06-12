@@ -1,0 +1,15 @@
+Package: libclass-method-modifiers-perl
+Architecture: amd64
+Auto-Installed: 1
+
+Package: libsub-name-perl
+Architecture: amd64
+Auto-Installed: 1
+
+Package: librole-tiny-perl
+Architecture: amd64
+Auto-Installed: 0
+
+Package: libimport-into-perl
+Architecture: amd64
+Auto-Installed: 1
