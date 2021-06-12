@@ -16,7 +16,7 @@
 | 🌤 | `rapt upgrade` |
 | ⛈ | `rapt dist-upgrade` |
 | ☁ | `rapt install` |
-| ⛈ | `rapt remove` |
+| ☁ | `rapt remove` |
 | ⛈ | `rapt autoremove` |
 | ⛈ | `rapt purge` |
 | ☀ | `rapt clean` |
