@@ -212,7 +212,7 @@ fn sub_missing_or_old_dependencies_recursive(
     .collect::<Vec<_>>();
 
   // return error if some dependency is not in cache.
-  if missing_packages.len() != missing_package_names.len() {
+  if missing_packages.len() < missing_package_names.len() {
     let not_found_packages = missing_package_names
       .iter()
       .filter(|name| {
