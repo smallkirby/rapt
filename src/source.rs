@@ -120,6 +120,7 @@ pub struct SourcePackage {
   pub component: String,
   pub dist: String,
   pub apt_manual_installed: bool,
+  pub provides: Vec<String>,
 }
 
 impl SourcePackage {
@@ -293,7 +294,7 @@ impl SourcePackage {
             .join(" ");
         }
         "Pre-Depends" => {
-          let _depends = parts.map(|s| String::from(*s)).collect::<Vec<_>>().join("");
+          let _depends = parts.nth(0).unwrap();
           let depends = _depends.split(",").collect::<Vec<_>>();
           for dep in depends {
             match parse_depends(dep) {
@@ -303,7 +304,7 @@ impl SourcePackage {
           }
         }
         "Depends" => {
-          let _depends = parts.map(|s| String::from(*s)).collect::<Vec<_>>().join("");
+          let _depends = parts.nth(0).unwrap();
           let depends = _depends.split(",").collect::<Vec<_>>();
           for dep in depends {
             match parse_depends(dep) {
@@ -561,16 +562,29 @@ impl Default for Section {
 
 // XXX should hold version info with '>', '=', '>=', etc...
 pub fn parse_depends(_dep: &str) -> Result<(String, Option<String>), String> {
-  let dep: String = _dep.trim().to_string();
-  if dep.contains(" ") {
-    // XXX assumes version format is like: (>=2.32)
-    // 0: package, 1: ( and {>=<}, 2: version and )
-    let parts = dep.split(" ").collect::<Vec<_>>();
-    let pkg = parts[0].trim().split(":").collect::<Vec<_>>()[0];
-    let version = &parts[2][..parts[2].len() - 1];
-    Ok((pkg.trim().to_string(), Some(version.trim().to_string())))
+  let tmp = _dep.trim().to_string();
+  if tmp.contains("|") {
+    let dep = tmp.split("|").collect::<Vec<_>>()[0];
+    parse_depends(&dep)
   } else {
-    return Ok((dep.trim().to_string(), None));
+    let dep = tmp.split(" ").collect::<Vec<_>>();
+    // 0: package, 1: ( and {>=<}, 2: version and )
+    match dep.len() {
+      1 => Ok((dep[0].trim().to_string(), None)),
+      2 => Err(format!(
+        "Invalid Depends/Pre-Depends/Provides field: {}",
+        _dep
+      )),
+      3 => {
+        let pkg = dep[0].trim().to_string();
+        let version = &dep[2][..dep[2].len() - 1];
+        Ok((pkg, Some(version.trim().to_string())))
+      }
+      _ => Err(format!(
+        "Invalid Depends/Pre-Depends/Provides field: {}",
+        _dep
+      )),
+    }
   }
 }
 
@@ -710,7 +724,6 @@ pub fn read_extended_information(filename: &str) -> Vec<(String, bool)> {
 
 #[cfg(test)]
 pub mod test {
-  use tokio::fs::read_dir;
 
   #[test]
   fn test_package_source_from_row() {
