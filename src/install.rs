@@ -136,12 +136,17 @@ pub fn install_debs(debfiles: &Vec<&path::Path>) -> Result<(), String> {
 
   // find missing/old dependencies
   let packages = &cache::search_cache_with_names(
-    &_packages.iter().map(|p| p.package.clone()).collect::<Vec<_>>()
+    &_packages
+      .iter()
+      .map(|p| p.package.clone())
+      .collect::<Vec<_>>(),
   );
   println!("\nRecursively searching for dependencies: ");
   let mut missing_old_package_names: Vec<(String, PackageState)> = vec![];
   for p in packages {
-    missing_old_package_names.append(&mut dpkg::get_missing_or_old_dependencies_recursive(p, true)?);
+    missing_old_package_names.append(&mut dpkg::get_missing_or_old_dependencies_recursive(
+      p, true,
+    )?);
   }
 
   let missing_package_names = missing_old_package_names
@@ -175,7 +180,16 @@ pub fn install_debs(debfiles: &Vec<&path::Path>) -> Result<(), String> {
   println!("");
 
   print!("The following NEW packages will be installed: \n  ");
-  print!("{} ", packages.iter().map(|p| p.package.clone()).collect::<Vec<_>>().join(" ").green().bold());
+  print!(
+    "{} ",
+    packages
+      .iter()
+      .map(|p| p.package.clone())
+      .collect::<Vec<_>>()
+      .join(" ")
+      .green()
+      .bold()
+  );
   for mp in &missing_packages {
     print!("{} ", mp.package.green());
   }

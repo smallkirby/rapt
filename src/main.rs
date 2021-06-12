@@ -14,8 +14,8 @@ pub mod show;
 pub mod slist;
 pub mod source;
 pub mod update;
-pub mod version;
 pub mod upgrade;
+pub mod version;
 
 #[derive(Debug, PartialEq, Default)]
 pub struct Opts {

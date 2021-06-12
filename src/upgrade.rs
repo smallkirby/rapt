@@ -1,5 +1,5 @@
+use crate::{cache, dpkg, install, source};
 use indicatif::{ProgressBar, ProgressStyle};
-use crate::{dpkg, source, install, cache};
 
 pub fn do_upgrade() {
   let progress_bar = ProgressBar::new(0);
@@ -15,7 +15,12 @@ pub fn do_upgrade() {
       return;
     }
   };
-  let upgradable_items = cache::search_cache_with_names(&upgradable_items_info.iter().map(|i| i.package.clone()).collect::<Vec<_>>());
+  let upgradable_items = cache::search_cache_with_names(
+    &upgradable_items_info
+      .iter()
+      .map(|i| i.package.clone())
+      .collect::<Vec<_>>(),
+  );
 
   match install::install_packages(upgradable_items.iter().map(|u| u).collect::<Vec<_>>()) {
     Ok(_) => {}
