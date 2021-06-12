@@ -104,8 +104,10 @@ pub struct SourcePackage {
   pub origin: String,
   pub bugs: String,
   pub installed_size: u64,
+  pub download_size: u64,
   pub component: String,
   pub dist: String,
+  pub apt_manual_installed: bool,
 }
 
 impl SourcePackage {
@@ -239,6 +241,14 @@ impl SourcePackage {
             .parse()
             .unwrap_or(0);
         }
+        "Download-Size" => {
+          item.download_size = parts
+            .nth(0)
+            .ok_or(format!("invalid 'Download-Size' format: {}", line))?
+            .to_string()
+            .parse()
+            .unwrap_or(0);
+        }
         "Essential" => {
           item.essential = match *parts
             .nth(0)
@@ -254,6 +264,7 @@ impl SourcePackage {
             .ok_or(format!("invalid 'Section' format: {}", line))?
           {
             "admin" => Section::ADMIN,
+            "universe/devel" => Section::DEVEL,
             _ => Section::UNKNOWN, // XXX
           };
         }

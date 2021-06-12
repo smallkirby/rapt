@@ -28,6 +28,8 @@ pub fn list_packages(items: &Vec<SourcePackage>) {
     println!("Priority: {}", item.priority.to_string().to_lowercase());
     println!("Section: {}", item.section.to_string().to_lowercase());
     println!("Origin: {}", item.origin);
+    println!("Installed-Size: {} kB", item.installed_size);
+    println!("Download-Size: {} kB", item.download_size);
     println!("Maintainer: {}", item.maintainer);
     println!("Original-Maintainer: {}", item.original_maintainer);
     println!("Bugs: {}", item.bugs);
@@ -49,7 +51,10 @@ pub fn list_packages(items: &Vec<SourcePackage>) {
     }
     println!("");
     println!("Homepage: {}", item.homepage);
-    println!("Description: {}", item.description);
+    println!("Description: ");
+    for d in item.description.split("\n").collect::<Vec<_>>() {
+      println!(" {}", d);
+    }
     println!("");
   }
 }
