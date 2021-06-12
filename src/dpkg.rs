@@ -107,6 +107,7 @@ pub fn check_missing_or_old(
         dpackage_name.push(c);
       }
     }
+    // find a package with name or 'Provides' is @package_name
     if dpackage_name == package_name {
       match package_version {
         Some(v) => {

@@ -100,17 +100,23 @@ pub fn search_cache_with_names(names: &Vec<String>) -> Vec<SourcePackage> {
 }
 
 // @cache should be resolved in duplication.
+// XXX for now, return items whose 'Provides' matches.
 pub fn search_cache_with_name_glob(glob: &Pattern, case_sensitive: bool) -> Vec<SourcePackage> {
   let mut ret_items = vec![];
   let cached_items = &*CACHE;
 
   for item in cached_items {
     if case_sensitive {
-      if glob.matches(&item.package) {
+      if glob.matches(&item.package) || item.provides.iter().any(|d| glob.matches(d)) {
         ret_items.push(item.clone());
       }
     } else {
-      if glob.matches(&item.package.to_lowercase()) {
+      if glob.matches(&item.package.to_lowercase())
+        || item
+          .provides
+          .iter()
+          .any(|d| glob.matches(&d.to_lowercase()))
+      {
         ret_items.push(item.clone());
       }
     }

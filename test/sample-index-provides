@@ -1,0 +1,25 @@
+Package: dbus-user-session
+Architecture: amd64
+Version: 1.12.16-2ubuntu2
+Multi-Arch: foreign
+Priority: optional
+Section: admin
+Source: dbus
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Utopia Maintenance Team <pkg-utopia-maintainers@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 126
+Provides: dbus-session-bus, default-dbus-session-bus
+Depends: dbus (>= 1.12.16-2ubuntu2), libpam-systemd, systemd
+Recommends: systemd-sysv
+Breaks: dbus-x11 (<< 1.9.10-2~), policykit-1 (<< 0.105-12~), udisks2 (<< 2.1.5-2~)
+Filename: pool/main/d/dbus/dbus-user-session_1.12.16-2ubuntu2_amd64.deb
+Size: 9424
+MD5sum: 2ad52e87c8b17ef29828d43b7a438669
+SHA1: c56ed42d9563c886fc1b0fc9186e0a61cdd568d6
+SHA256: 895f54690142787d331c061e9a25b60ba5d732c255c7c8e69a571339c70726a5
+Homepage: http://dbus.freedesktop.org/
+Description: simple interprocess messaging system (systemd --user integration)
+Task: server, print-server, ubuntu-desktop-minimal, ubuntu-desktop, cloud-image, ubuntu-core, kubuntu-desktop, xubuntu-core, xubuntu-desktop, lubuntu-desktop, ubuntustudio-desktop-core, ubuntustudio-desktop, ubuntukylin-desktop, ubuntu-mate-core, ubuntu-mate-desktop, ubuntu-budgie-desktop
+Description-md5: be4453093922af92deac14b4e8458a83

@@ -313,6 +313,16 @@ impl SourcePackage {
             };
           }
         }
+        "Provides" => {
+          let _depends = parts.nth(0).unwrap();
+          let depends = _depends.split(",").collect::<Vec<_>>();
+          for dep in depends {
+            match parse_depends(dep) {
+              Ok((pkg, _version)) => item.provides.push(pkg),
+              Err(msg) => return Err(msg),
+            };
+          }
+        }
         "Suggests" => {
           let _sug = parts.map(|s| String::from(*s)).collect::<Vec<_>>().join("");
           let sug = _sug.split(",").map(|s| s.trim()).collect::<Vec<_>>();
@@ -860,6 +870,20 @@ pub mod test {
         ("libsub-name-perl".to_string(), true),
         ("librole-tiny-perl".to_string(), false),
         ("libimport-into-perl".to_string(), true),
+      ]
+    );
+  }
+
+  #[test]
+  fn test_depends() {
+    use crate::source::SourcePackage;
+    let index_str = std::fs::read_to_string("test/sample-index-provides").unwrap();
+    let dbus = &SourcePackage::from_raw(&index_str, "").unwrap()[0];
+    assert_eq!(
+      dbus.provides,
+      vec![
+        "dbus-session-bus".to_string(),
+        "default-dbus-session-bus".to_string()
       ]
     );
   }
