@@ -1,4 +1,6 @@
-# 🚧 UNDER CONSTRUCTION 🚧
+# MOVED PERMANENTLY
+
+GO TO [`rapt2`](https://github.com/smallkirby/rapt2).
   
 # RAPT: Simple Toy apt written in Rust
 `rapt` is toy-version of `apt`(Debian Package Management System).  
